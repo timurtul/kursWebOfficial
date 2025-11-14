@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+}
+
+model User {
+  id         Int        @id @default(autoincrement())
+  email      String     @unique
+  password   String
+  name       String
+  createdAt  DateTime   @default(now())
+  purchases  Purchase[]
+}
+
+model Course {
+  id          Int             @id @default(autoincrement())
+  title       String
+  slug        String          @unique
+  description String
+  price       Int
+  status      String          @default("PUBLISHED")
+  createdAt   DateTime        @default(now())
+  modules     CourseModule[]
+  purchases   Purchase[]
+}
+
+model CourseModule {
+  id        Int     @id @default(autoincrement())
+  title     String
+  order     Int
+  videoFile String
+  duration  Int?
+  courseId  Int
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, order])
+}
+
+model Purchase {
+  id          Int             @id @default(autoincrement())
+  userId      Int
+  courseId    Int
+  amount      Int
+  status      PurchaseStatus  @default(COMPLETED)
+  transaction String?
+  createdAt   DateTime        @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kurs Satış Sayfası - VSL</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Announcement Bar -->
+    <div class="announcement-bar">
+        <span class="announcement-content">
+            <span class="announcement-badge">YENİ</span>
+            %50 İNDİRİM: Yeni öğrenciler için fırsatlara göz at →
+        </span>
+    </div>
+
+    <!-- Main Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <!-- Logo -->
+                <div class="navbar-logo">
+                    <div class="logo-icon">
+                        <div class="logo-square"></div>
+                    </div>
+                    <span class="logo-text">
+                        TİMUR<span class="logo-accent">TUL</span>.COM
+                    </span>
+                </div>
+
+                <!-- Desktop Navigation -->
+                <div class="navbar-menu desktop-menu">
+                    <a href="#workshops" class="nav-link">Workshops</a>
+                    <a href="#courses" class="nav-link">Courses</a>
+                    <a href="#resources" class="nav-link">Resources</a>
+                    <a href="#about" class="nav-link">About</a>
+                    <a href="#contact" class="nav-link">Contact</a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                    <svg class="menu-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div class="mobile-menu" id="mobileMenu">
+                <div class="mobile-menu-content">
+                    <a href="#workshops" class="mobile-nav-link" onclick="toggleMobileMenu()">Workshops</a>
+                    <a href="#courses" class="mobile-nav-link" onclick="toggleMobileMenu()">Courses</a>
+                    <a href="#resources" class="mobile-nav-link" onclick="toggleMobileMenu()">Resources</a>
+                    <a href="#about" class="mobile-nav-link" onclick="toggleMobileMenu()">About</a>
+                    <a href="#contact" class="mobile-nav-link" onclick="toggleMobileMenu()">Contact</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section with Video -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">YAPAY ZEKA GELİŞTİRİCİSİ OLMAK İSTER MİSİN?</h1>
+                <p class="hero-subtitle">Başarıya giden yolda ilk adımınızı atın</p>
+                <div class="video-container">
+                    <div class="video-wrapper">
+                        <div class="video-placeholder">
+                            <svg class="play-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
+                            </svg>
+                            <p>Video Oynatmak İçin Tıklayın</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="video-warning">TÜM DETAYLARI ÖĞRENMEK İÇİN VİDEOYU SONUNA KADAR İZLEYİNİZ</p>
+                <button class="hero-cta-button" onclick="scrollToForm()">
+                    AI Agent Eğitimine Şimdi Kayıt Yaptır
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem Section -->
+    <section class="problem">
+        <div class="container">
+            <h2 class="section-title">Bu Kursta Neler Öğreneceksiniz?</h2>
+            <div class="problem-list">
+                <div class="problem-item">
+                    <div class="problem-icon">🤖</div>
+                    <p>0'dan Yapay Zeka Asistanları Geliştirmeyi Öğreneceksiniz</p>
+                </div>
+                <div class="problem-item">
+                    <div class="problem-icon">💰</div>
+                    <p>AI Agent Satarak Para Kazanmayı Öğreneceksiniz</p>
+                </div>
+                <div class="problem-item">
+                    <div class="problem-icon">📊</div>
+                    <p>Veri ile Konuşan AI Geliştirmeyi Öğreneceksiniz</p>
+                </div>
+                <div class="problem-item">
+                    <div class="problem-icon">🔗</div>
+                    <p>A'dan Z'ye n8n Kullanmayı Öğreneceksiniz</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Agent Eğitimi Nedir Section -->
+    <section class="ai-education-intro">
+        <div class="container">
+            <h2 class="intro-title">AI Agent Eğitimi Nedir?</h2>
+            <p class="intro-subtitle">Yapay zeka asistanları geliştirmek için kapsamlı eğitim programı</p>
+            <p class="intro-description">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+            </p>
+            <div class="intro-image-container">
+                <img src="https://sidehustlesdatabase.com/wp-content/uploads/2024/05/Screenshot-at-AM-1.jpg" alt="AI Agent Eğitimi" class="intro-image">
+            </div>
+        </div>
+    </section>
+
+    <!-- Solution Section -->
+    <section class="solution">
+        <div class="container">
+            <h2 class="section-title">Çözüm Burada!</h2>
+            <div class="solution-content">
+                <div class="solution-text">
+                    <p class="solution-intro">Yıllarca süren araştırma ve deneyimlerimizin sonucu olarak, size en etkili yöntemi sunuyoruz.</p>
+                    <div class="benefits">
+                        <div class="benefit-item">
+                            <span class="check-icon">✓</span>
+                            <div>
+                                <h3>Kanıtlanmış Yöntemler</h3>
+                                <p>Binlerce kişinin başarıyla kullandığı stratejiler</p>
+                            </div>
+                        </div>
+                        <div class="benefit-item">
+                            <span class="check-icon">✓</span>
+                            <div>
+                                <h3>Adım Adım Rehber</h3>
+                                <p>Hiçbir şeyi kaçırmadan takip edebileceğiniz detaylı anlatım</p>
+                            </div>
+                        </div>
+                        <div class="benefit-item">
+                            <span class="check-icon">✓</span>
+                            <div>
+                                <h3>7/24 Destek</h3>
+                                <p>Yol boyunca yanınızda olacak destek ekibimiz</p>
+                            </div>
+                        </div>
+                        <div class="benefit-item">
+                            <span class="check-icon">✓</span>
+                            <div>
+                                <h3>Hayat Boyu Erişim</h3>
+                                <p>Bir kez satın aldığınızda, güncellemeler dahil tüm içeriğe ömür boyu erişim</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- What You Get Section -->
+    <section class="what-you-get">
+        <div class="container">
+            <h2 class="section-title">Kurs İçeriği</h2>
+            <div class="modules">
+                <div class="module">
+                    <div class="module-number">01</div>
+                    <h3>Modül 1: Temel Bilgiler</h3>
+                    <p>Başarılı olmak için gerekli temel kavramlar ve prensipler</p>
+                </div>
+                <div class="module">
+                    <div class="module-number">02</div>
+                    <h3>Modül 2: İleri Teknikler</h3>
+                    <p>Uzman seviyesinde teknikler ve stratejiler</p>
+                </div>
+                <div class="module">
+                    <div class="module-number">03</div>
+                    <h3>Modül 3: Uygulama</h3>
+                    <p>Gerçek hayat senaryoları ve pratik uygulamalar</p>
+                </div>
+                <div class="module">
+                    <div class="module-number">04</div>
+                    <h3>Modül 4: Mastery</h3>
+                    <p>Ustalaşma seviyesine ulaşma yöntemleri</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <h2 class="section-title">Öğrencilerimiz Ne Diyor?</h2>
+            <div class="testimonial-grid">
+                <div class="testimonial">
+                    <div class="stars">★★★★★</div>
+                    <p class="testimonial-text">"Bu kurs hayatımı değiştirdi! Artık istediğim sonuçları alabiliyorum."</p>
+                    <p class="testimonial-author">- Ahmet Y.</p>
+                </div>
+                <div class="testimonial">
+                    <div class="stars">★★★★★</div>
+                    <p class="testimonial-text">"En iyi yatırımım oldu. Kesinlikle tavsiye ederim!"</p>
+                    <p class="testimonial-author">- Zeynep K.</p>
+                </div>
+                <div class="testimonial">
+                    <div class="stars">★★★★★</div>
+                    <p class="testimonial-text">"Adım adım rehberlik sayesinde hiç zorlanmadım. Mükemmel!"</p>
+                    <p class="testimonial-author">- Mehmet D.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing">
+        <div class="container">
+            <h2 class="section-title">Özel Fırsat Fiyatı</h2>
+            <div class="pricing-content">
+                <div class="price-box">
+                    <div class="price-badge">Özel Teklif</div>
+                    <div class="old-price">₺2.997</div>
+                    <div class="current-price">₺997</div>
+                    <div class="price-savings">%67 İndirim!</div>
+                    <ul class="price-features">
+                        <li>✓ Tüm modüllere erişim</li>
+                        <li>✓ Bonus içerikler</li>
+                        <li>✓ Özel topluluk erişimi</li>
+                        <li>✓ Hayat boyu güncellemeler</li>
+                        <li>✓ 30 gün para iade garantisi</li>
+                    </ul>
+                    <button class="cta-button" onclick="scrollToForm()">
+                        Hemen Başla - Sınırlı Süre!
+                    </button>
+                    <p class="guarantee">💯 30 Gün Para İade Garantisi</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq">
+        <div class="container">
+            <h2 class="section-title">Sıkça Sorulan Sorular</h2>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Kursa nasıl erişebilirim?</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Satın alma işleminin hemen ardından e-posta adresinize giriş bilgileri gönderilecek ve kursa anında erişebileceksiniz.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Kurs ne kadar sürüyor?</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Kurs içeriği toplamda yaklaşık 10 saatlik video içerikten oluşmaktadır. Kendi hızınızda ilerleyebilirsiniz.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Para iade garantisi var mı?</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Evet! 30 gün içinde memnun kalmazsanız, tam para iadesi yapıyoruz. Hiçbir soru sormadan.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question" onclick="toggleFaq(this)">
+                        <span>Yeni başlayanlar için uygun mu?</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p>Kesinlikle! Kurs sıfırdan başlayarak ilerlemektedir ve her seviyeden kişi için uygundur.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA Section -->
+    <section class="final-cta">
+        <div class="container">
+            <h2 class="cta-title">Hemen Başlayın ve Hayatınızı Değiştirin!</h2>
+            <p class="cta-subtitle">Binlerce kişi bu kursla başarıya ulaştı. Sıra sizde!</p>
+            <div class="cta-form-container" id="orderForm">
+                <form class="order-form" onsubmit="handleSubmit(event)">
+                    <div class="form-group">
+                        <input type="text" placeholder="Adınız Soyadınız" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="email" placeholder="E-posta Adresiniz" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="tel" placeholder="Telefon Numaranız" required>
+                    </div>
+                    <button type="submit" class="cta-button-large">
+                        Şimdi Satın Al - ₺997
+                    </button>
+                    <p class="form-security">🔒 Güvenli ödeme - Bilgileriniz korunmaktadır</p>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Tüm hakları saklıdır.</p>
+            <div class="footer-links">
+                <a href="#">Gizlilik Politikası</a>
+                <a href="#">Kullanım Şartları</a>
+                <a href="#">İletişim</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="api.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+

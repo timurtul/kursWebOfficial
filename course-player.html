@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kurs İzleme - Video Kurs</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .course-player-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+        }
+        
+        .video-player-section {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+        }
+        
+        .video-player-section video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .course-sidebar {
+            background: var(--white);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .course-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+        
+        .module-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .module-item {
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: var(--bg-light);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .module-item:hover {
+            background: rgba(141, 58, 246, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .module-item.active {
+            background: var(--gradient);
+            color: var(--white);
+        }
+        
+        .module-item h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+        }
+        
+        .module-item p {
+            margin: 0;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+        }
+        
+        .error {
+            text-align: center;
+            padding: 3rem;
+            color: var(--danger);
+        }
+        
+        @media (max-width: 968px) {
+            .course-player-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .course-sidebar {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-content">
+                <div class="navbar-logo">
+                    <div class="logo-icon">
+                        <div class="logo-square"></div>
+                    </div>
+                    <span class="logo-text">
+                        TİMUR<span class="logo-accent">TUL</span>.COM
+                    </span>
+                </div>
+                <div class="navbar-menu desktop-menu">
+                    <a href="index.html" class="nav-link">Ana Sayfa</a>
+                    <button class="nav-link" onclick="API.logout()" style="background: none; border: none; cursor: pointer;">Çıkış Yap</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Course Player -->
+    <div class="container" style="padding-top: 2rem;">
+        <div id="loading" class="loading">
+            <p>Kurs yükleniyor...</p>
+        </div>
+        
+        <div id="error" class="error" style="display: none;">
+            <p id="errorMessage"></p>
+        </div>
+        
+        <div id="coursePlayer" class="course-player-container" style="display: none;">
+            <div class="video-player-section">
+                <video id="videoPlayer" controls>
+                    Video yükleniyor...
+                </video>
+            </div>
+            
+            <div class="course-sidebar">
+                <h2 class="course-title" id="courseTitle">Kurs Başlığı</h2>
+                <ul class="module-list" id="moduleList">
+                    <!-- Modüller buraya eklenecek -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        // URL'den courseId al
+        const urlParams = new URLSearchParams(window.location.search);
+        const courseId = parseInt(urlParams.get('courseId')) || 1;
+
+        // Kullanıcı giriş kontrolü
+        if (!API.isAuthenticated()) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('errorMessage').textContent = 'Giriş yapmanız gerekiyor. Ana sayfaya yönlendiriliyorsunuz...';
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+            throw new Error('Not authenticated');
+        }
+
+        let currentCourse = null;
+        let currentVideoIndex = 0;
+
+        // Kurs bilgilerini yükle
+        async function loadCourse() {
+            try {
+                // Önce kullanıcının erişimi var mı kontrol et
+                const myCourses = await API.getMyCourses();
+                const hasAccess = myCourses.some(c => c.id === courseId);
+                
+                if (!hasAccess) {
+                    throw new Error('Bu kursa erişim yetkiniz yok. Lütfen kursu satın alın.');
+                }
+
+                // Kurs bilgilerini al
+                currentCourse = await API.getCourse(courseId);
+                
+                // UI'ı güncelle
+                document.getElementById('courseTitle').textContent = currentCourse.title;
+                
+                // Modül listesini oluştur
+                const moduleList = document.getElementById('moduleList');
+                moduleList.innerHTML = '';
+                
+                currentCourse.modules.forEach((module, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'module-item';
+                    if (index === 0) li.classList.add('active');
+                    
+                    li.innerHTML = `
+                        <h4>${module.title}</h4>
+                        <p>Video ${index + 1}/${currentCourse.modules.length}</p>
+                    `;
+                    
+                    li.addEventListener('click', () => {
+                        loadVideo(index);
+                    });
+                    
+                    moduleList.appendChild(li);
+                });
+                
+                // İlk videoyu yükle
+                loadVideo(0);
+                
+                // Loading'i gizle, player'ı göster
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('coursePlayer').style.display = 'grid';
+                
+            } catch (error) {
+                console.error('Kurs yükleme hatası:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('errorMessage').textContent = error.message || 'Kurs yüklenirken bir hata oluştu.';
+            }
+        }
+
+        // Video yükle
+        function loadVideo(index) {
+            if (!currentCourse || !currentCourse.modules[index]) {
+                return;
+            }
+            
+            currentVideoIndex = index;
+            const module = currentCourse.modules[index];
+            const videoUrl = API.getVideoUrl(courseId, module.fileName);
+            
+            const videoPlayer = document.getElementById('videoPlayer');
+            videoPlayer.src = videoUrl;
+            
+            // Modül listesindeki aktif durumu güncelle
+            document.querySelectorAll('.module-item').forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+            
+            // Video yükleme hatası
+            videoPlayer.addEventListener('error', function() {
+                console.error('Video yüklenemedi:', videoUrl);
+                alert('Video yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.');
+            });
+        }
+
+        // Sayfa yüklendiğinde kursu yükle
+        document.addEventListener('DOMContentLoaded', loadCourse);
+    </script>
+</body>
+</html>
+

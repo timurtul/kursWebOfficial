@@ -1,0 +1,437 @@
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const { PrismaClient } = require('@prisma/client');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
+const VIDEO_DIR = path.join(__dirname, 'videos'); // Video dosyalarının saklanacağı klasör
+const prisma = new PrismaClient();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Static files serving (HTML, CSS, JS dosyaları için)
+app.use(express.static(__dirname));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 dakika
+  max: 100 // Her IP için maksimum 100 istek
+});
+app.use('/api/', limiter);
+
+// Video klasörünü oluştur (yoksa)
+if (!fs.existsSync(VIDEO_DIR)) {
+  fs.mkdirSync(VIDEO_DIR, { recursive: true });
+}
+
+// Prisma ile Postgres bağlantısı (ENV üzerinden)
+
+// JWT Token doğrulama middleware
+// Video tag'leri Authorization header gönderemediği için query parameter'dan da token okuyoruz
+const authenticateToken = (req, res, next) => {
+  // Önce Authorization header'dan dene
+  const authHeader = req.headers['authorization'];
+  let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  // Eğer header'da yoksa query parameter'dan al (video tag'leri için)
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token bulunamadı' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Geçersiz token' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// Kullanıcının kursa erişim hakkı var mı kontrolü
+const checkCourseAccess = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const courseId = parseInt(req.params.courseId, 10);
+
+    const purchase = await prisma.purchase.findFirst({
+      where: {
+        userId,
+        courseId,
+        status: 'COMPLETED'
+      }
+    });
+
+    if (!purchase) {
+      return res.status(403).json({ error: 'Bu kursa erişim yetkiniz yok' });
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ========== AUTH ENDPOINTS ==========
+
+// Kullanıcı kaydı
+app.post('/api/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: 'Tüm alanlar zorunludur' });
+    }
+
+    // Email kontrolü
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Bu email zaten kayıtlı' });
+    }
+
+    // Şifreyi hashle
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name
+      }
+    });
+
+    // JWT token oluştur
+    const token = jwt.sign(
+      { userId: newUser.id, email: newUser.email },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.status(201).json({
+      message: 'Kayıt başarılı',
+      token,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        name: newUser.name
+      }
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ error: 'Sunucu hatası' });
+  }
+});
+
+// Kullanıcı girişi
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email ve şifre gerekli' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ error: 'Geçersiz email veya şifre' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Geçersiz email veya şifre' });
+    }
+
+    // JWT token oluştur
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      message: 'Giriş başarılı',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Sunucu hatası' });
+  }
+});
+
+// ========== COURSE ENDPOINTS ==========
+
+// Tüm kursları listele (public)
+app.get('/api/courses', async (req, res) => {
+  try {
+    const allCourses = await prisma.course.findMany({
+      include: {
+        modules: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const publicCourses = allCourses.map(course => ({
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      price: course.price,
+      videoCount: course.modules.length
+    }));
+
+    res.json(publicCourses);
+  } catch (error) {
+    console.error('Courses list error:', error);
+    res.status(500).json({ error: 'Sunucu hatası' });
+  }
+});
+
+// Kurs detayı (public)
+app.get('/api/courses/:courseId', async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.courseId, 10);
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        modules: {
+          orderBy: { order: 'asc' }
+        }
+      }
+    });
+
+    if (!course) {
+      return res.status(404).json({ error: 'Kurs bulunamadı' });
+    }
+
+    res.json({
+      id: course.id,
+      title: course.title,
+      description: course.description,
+      price: course.price,
+      videoCount: course.modules.length,
+      modules: course.modules.map(module => ({
+        id: module.id,
+        title: module.title,
+        order: module.order,
+        fileName: module.videoFile
+      }))
+    });
+  } catch (error) {
+    console.error('Course detail error:', error);
+    res.status(500).json({ error: 'Sunucu hatası' });
+  }
+});
+
+// ========== VIDEO STREAMING ENDPOINT ==========
+
+// Güvenli video streaming (token ve erişim kontrolü ile)
+app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCourseAccess, async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.courseId, 10);
+    const videoFile = req.params.videoFile;
+
+    // Kurs + modüller
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: { modules: true }
+    });
+    if (!course) {
+      return res.status(404).json({ error: 'Kurs bulunamadı' });
+    }
+
+    const videoFileLower = videoFile.toLowerCase();
+    const module = course.modules.find(m => m.videoFile.toLowerCase() === videoFileLower);
+
+    if (!module) {
+      return res.status(404).json({ error: 'Video bulunamadı' });
+    }
+
+    const matchingFile = module.videoFile;
+    const videoPath = path.join(VIDEO_DIR, matchingFile);
+
+    // Dosya var mı kontrol et - case-insensitive arama
+    let actualFilePath = videoPath;
+    if (!fs.existsSync(videoPath)) {
+      const files = fs.readdirSync(VIDEO_DIR);
+      const foundFile = files.find(f => f.toLowerCase() === matchingFile.toLowerCase());
+      if (foundFile) {
+        actualFilePath = path.join(VIDEO_DIR, foundFile);
+      } else {
+        return res.status(404).json({ error: 'Video dosyası bulunamadı' });
+      }
+    }
+
+    const stat = fs.statSync(actualFilePath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    // Range request desteği (video oynatma için gerekli)
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunksize = (end - start) + 1;
+      const file = fs.createReadStream(actualFilePath, { start, end });
+      const head = {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': 'video/mp4',
+        'Cache-Control': 'no-cache'
+      };
+      res.writeHead(206, head);
+      file.pipe(res);
+    } else {
+      const head = {
+        'Content-Length': fileSize,
+        'Content-Type': 'video/mp4',
+        'Cache-Control': 'no-cache'
+      };
+      res.writeHead(200, head);
+      fs.createReadStream(actualFilePath).pipe(res);
+    }
+  } catch (error) {
+    console.error('Video stream error:', error);
+    res.status(500).json({ error: 'Video yüklenirken hata oluştu' });
+  }
+});
+
+// ========== PURCHASE ENDPOINTS ==========
+
+// Ödeme başlatma (ödeme sağlayıcınızla entegre edin)
+app.post('/api/purchase', authenticateToken, async (req, res) => {
+  try {
+    const { courseId, paymentMethod } = req.body;
+    const userId = req.user.userId;
+
+    if (!courseId) {
+      return res.status(400).json({ error: 'Kurs ID gerekli' });
+    }
+
+    const course = await prisma.course.findUnique({
+      where: { id: parseInt(courseId, 10) }
+    });
+    if (!course) {
+      return res.status(404).json({ error: 'Kurs bulunamadı' });
+    }
+
+    // Zaten satın alınmış mı kontrol et
+    const existingPurchase = await prisma.purchase.findFirst({
+      where: {
+        userId,
+        courseId: course.id,
+        status: 'COMPLETED'
+      }
+    });
+
+    if (existingPurchase) {
+      return res.status(400).json({ error: 'Bu kurs zaten satın alınmış' });
+    }
+
+    // Ödeme işlemi burada yapılacak (iyzico, paytr, stripe vb.)
+    const purchase = await prisma.purchase.create({
+      data: {
+        userId,
+        courseId: course.id,
+        amount: course.price,
+        status: 'COMPLETED',
+        transaction: paymentMethod || 'manual'
+      }
+    });
+
+    res.json({
+      message: 'Satın alma başarılı',
+      purchase: {
+        id: purchase.id,
+        courseId: purchase.courseId,
+        amount: purchase.amount,
+        status: purchase.status
+      }
+    });
+  } catch (error) {
+    console.error('Purchase error:', error);
+    res.status(500).json({ error: 'Sunucu hatası' });
+  }
+});
+
+// Kullanıcının satın aldığı kursları listele
+app.get('/api/my-courses', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const userPurchases = await prisma.purchase.findMany({
+      where: {
+        userId,
+        status: 'COMPLETED'
+      },
+      include: {
+        course: {
+          include: { modules: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const userCourses = userPurchases.map(purchase => ({
+      id: purchase.course.id,
+      title: purchase.course.title,
+      description: purchase.course.description,
+      purchasedAt: purchase.createdAt,
+      videoCount: purchase.course.modules.length
+    }));
+
+    res.json(userCourses);
+  } catch (error) {
+    console.error('My courses error:', error);
+    res.status(500).json({ error: 'Sunucu hatası' });
+  }
+});
+
+// ========== HEALTH CHECK ==========
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Backend çalışıyor' });
+});
+
+// ========== ROOT ROUTE ==========
+// Ana sayfa için root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ========== ERROR HANDLING ==========
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Bir hata oluştu' });
+});
+
+// Server başlat
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Backend server ${PORT} portunda çalışıyor`);
+  console.log(`📁 Video klasörü: ${VIDEO_DIR}`);
+  console.log(`🔐 JWT Secret: ${JWT_SECRET.substring(0, 10)}...`);
+});
+
+const gracefulShutdown = async () => {
+  console.log('🛑 Sunucu kapatılıyor...');
+  await prisma.$disconnect();
+  server.close(() => process.exit(0));
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
