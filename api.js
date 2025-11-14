@@ -1,5 +1,6 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:3000/api';
+// Otomatik olarak mevcut hostname'i kullan (localhost veya production)
+const API_BASE_URL = `${window.location.protocol}//${window.location.host}/api`;
 
 // Local Storage Keys
 const STORAGE_KEYS = {
