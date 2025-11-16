@@ -136,6 +136,20 @@ class API {
   static async getMyCourses() {
     return this.request('/my-courses');
   }
+
+  // Access code verification
+  static async verifyAccessCode(code, courseId) {
+    const data = await this.request('/verify-access-code', {
+      method: 'POST',
+      body: JSON.stringify({ code, courseId })
+    });
+    
+    if (data.token) {
+      this.saveToken(data.token);
+    }
+    
+    return data;
+  }
 }
 
 // Export for use in other files

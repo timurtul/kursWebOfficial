@@ -31,6 +31,7 @@ model Course {
   createdAt   DateTime        @default(now())
   modules     CourseModule[]
   purchases   Purchase[]
+  accessCodes AccessCode[]
 }
 
 model CourseModule {
@@ -57,4 +58,19 @@ model Purchase {
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model AccessCode {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  courseId    Int
+  maxUses     Int?      // null = sınırsız
+  usedCount   Int       @default(0)
+  expiresAt   DateTime? // null = süresiz
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([code])
 }

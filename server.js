@@ -61,12 +61,13 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Kullanıcının kursa erişim hakkı var mı kontrolü
+// Kullanıcının kursa erişim hakkı var mı kontrolü (purchase veya access code)
 const checkCourseAccess = async (req, res, next) => {
   try {
     const userId = req.user.userId;
     const courseId = parseInt(req.params.courseId, 10);
 
+    // Önce purchase kontrolü
     const purchase = await prisma.purchase.findFirst({
       where: {
         userId,
@@ -75,11 +76,17 @@ const checkCourseAccess = async (req, res, next) => {
       }
     });
 
-    if (!purchase) {
-      return res.status(403).json({ error: 'Bu kursa erişim yetkiniz yok' });
+    if (purchase) {
+      return next(); // Purchase varsa erişim var
     }
 
-    next();
+    // Purchase yoksa, access code kontrolü (session'dan)
+    const accessCodeSession = req.user.accessCodeSession || {};
+    if (accessCodeSession[courseId]) {
+      return next(); // Access code ile erişim var
+    }
+
+    return res.status(403).json({ error: 'Bu kursa erişim yetkiniz yok. Lütfen erişim kodu girin veya kursu satın alın.' });
   } catch (error) {
     next(error);
   }
@@ -172,6 +179,80 @@ app.post('/api/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({ error: 'Sunucu hatası' });
+  }
+});
+
+// Erişim kodu doğrulama
+app.post('/api/verify-access-code', authenticateToken, async (req, res) => {
+  try {
+    const { code, courseId } = req.body;
+    const userId = req.user.userId;
+
+    if (!code || !courseId) {
+      return res.status(400).json({ error: 'Kod ve kurs ID gerekli' });
+    }
+
+    // Kodu temizle (tire ve boşlukları kaldır)
+    const cleanCode = code.replace(/[\s-]/g, '').toUpperCase();
+
+    // Access code'u bul
+    const accessCode = await prisma.accessCode.findUnique({
+      where: { code: cleanCode },
+      include: { course: true }
+    });
+
+    if (!accessCode) {
+      return res.status(404).json({ error: 'Geçersiz erişim kodu' });
+    }
+
+    // Kontroller
+    if (!accessCode.isActive) {
+      return res.status(403).json({ error: 'Bu kod devre dışı bırakılmış' });
+    }
+
+    if (accessCode.expiresAt && new Date() > new Date(accessCode.expiresAt)) {
+      return res.status(403).json({ error: 'Bu kodun süresi dolmuş' });
+    }
+
+    if (accessCode.maxUses && accessCode.usedCount >= accessCode.maxUses) {
+      return res.status(403).json({ error: 'Bu kodun kullanım limiti dolmuş' });
+    }
+
+    if (accessCode.courseId !== parseInt(courseId, 10)) {
+      return res.status(403).json({ error: 'Bu kod bu kurs için geçerli değil' });
+    }
+
+    // Kullanım sayısını artır
+    await prisma.accessCode.update({
+      where: { id: accessCode.id },
+      data: { usedCount: accessCode.usedCount + 1 }
+    });
+
+    // JWT token'a access code bilgisini ekle
+    const token = jwt.sign(
+      {
+        userId,
+        email: req.user.email,
+        accessCodeSession: {
+          ...(req.user.accessCodeSession || {}),
+          [courseId]: true
+        }
+      },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      message: 'Erişim kodu doğrulandı',
+      token,
+      course: {
+        id: accessCode.course.id,
+        title: accessCode.course.title
+      }
+    });
+  } catch (error) {
+    console.error('Access code verification error:', error);
     res.status(500).json({ error: 'Sunucu hatası' });
   }
 });

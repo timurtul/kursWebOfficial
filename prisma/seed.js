@@ -49,8 +49,21 @@ async function main() {
     }))
   });
 
+  // Örnek erişim kodu
+  await prisma.accessCode.upsert({
+    where: { code: '222222222' },
+    update: {},
+    create: {
+      code: '222222222',
+      courseId: course.id,
+      maxUses: null, // Sınırsız
+      isActive: true
+    }
+  });
+
   console.log('✅ Seed tamamlandı.');
   console.log(`Demo kullanıcı: ${demoUser.email} / demo1234`);
+  console.log(`Erişim kodu: 222-222-222`);
 }
 
 main()

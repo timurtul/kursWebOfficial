@@ -96,6 +96,77 @@
             color: var(--danger);
         }
         
+        .access-code-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .access-code-modal.active {
+            display: flex;
+        }
+        
+        .access-code-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .access-code-box h3 {
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+        
+        .access-code-input {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 0.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+        
+        .access-code-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .access-code-button {
+            width: 100%;
+            padding: 1rem;
+            background: var(--gradient);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+        }
+        
+        .access-code-button:hover {
+            opacity: 0.9;
+        }
+        
+        .access-code-error {
+            color: var(--danger);
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
         @media (max-width: 968px) {
             .course-player-container {
                 grid-template-columns: 1fr;
@@ -138,6 +209,17 @@
             <p id="errorMessage"></p>
         </div>
         
+        <!-- Access Code Modal -->
+        <div id="accessCodeModal" class="access-code-modal">
+            <div class="access-code-box">
+                <h3>Erişim Kodu Gerekli</h3>
+                <p style="margin-bottom: 1.5rem; color: var(--text-light);">Bu kursu izlemek için erişim kodunuzu girin</p>
+                <input type="text" id="accessCodeInput" class="access-code-input" placeholder="222-222-222" maxlength="11">
+                <button class="access-code-button" onclick="verifyAccessCode()">Kodu Doğrula</button>
+                <div id="accessCodeError" class="access-code-error"></div>
+            </div>
+        </div>
+        
         <div id="coursePlayer" class="course-player-container" style="display: none;">
             <div class="video-player-section">
                 <video id="videoPlayer" controls>
@@ -174,6 +256,54 @@
         let currentCourse = null;
         let currentVideoIndex = 0;
 
+        // Erişim kodu doğrulama
+        async function verifyAccessCode() {
+            const codeInput = document.getElementById('accessCodeInput');
+            const errorDiv = document.getElementById('accessCodeError');
+            const code = codeInput.value.trim();
+            
+            errorDiv.textContent = '';
+            
+            if (!code) {
+                errorDiv.textContent = 'Lütfen bir kod girin';
+                return;
+            }
+            
+            try {
+                const result = await API.verifyAccessCode(code, courseId);
+                
+                // Başarılı - modal'ı kapat ve kursu yükle
+                document.getElementById('accessCodeModal').classList.remove('active');
+                loadCourse();
+            } catch (error) {
+                errorDiv.textContent = error.message || 'Geçersiz kod. Lütfen tekrar deneyin.';
+            }
+        }
+        
+        // Enter tuşu ile kod doğrulama
+        document.addEventListener('DOMContentLoaded', function() {
+            const codeInput = document.getElementById('accessCodeInput');
+            if (codeInput) {
+                codeInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        verifyAccessCode();
+                    }
+                });
+                
+                // Otomatik tire ekleme (222-222-222 formatı)
+                codeInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/[^0-9]/g, '');
+                    if (value.length > 3) {
+                        value = value.substring(0, 3) + '-' + value.substring(3, 6);
+                    }
+                    if (value.length > 7) {
+                        value = value.substring(0, 7) + '-' + value.substring(7, 10);
+                    }
+                    e.target.value = value;
+                });
+            }
+        });
+
         // Kurs bilgilerini yükle
         async function loadCourse() {
             try {
@@ -182,7 +312,10 @@
                 const hasAccess = myCourses.some(c => c.id === courseId);
                 
                 if (!hasAccess) {
-                    throw new Error('Bu kursa erişim yetkiniz yok. Lütfen kursu satın alın.');
+                    // Erişim yoksa modal göster
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('accessCodeModal').classList.add('active');
+                    return;
                 }
 
                 // Kurs bilgilerini al
