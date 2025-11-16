@@ -137,18 +137,40 @@ class API {
     return this.request('/my-courses');
   }
 
-  // Access code verification
+  // Access code verification (token olmadan da çalışır)
   static async verifyAccessCode(code, courseId) {
-    const data = await this.request('/verify-access-code', {
-      method: 'POST',
-      body: JSON.stringify({ code, courseId })
-    });
+    const token = this.getToken();
+    const headers = {
+      'Content-Type': 'application/json'
+    };
     
-    if (data.token) {
-      this.saveToken(data.token);
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
     
-    return data;
+    try {
+      const response = await fetch(`${API_BASE_URL}/verify-access-code`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ code, courseId })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Bir hata oluştu');
+      }
+      
+      if (data.token) {
+        this.saveToken(data.token);
+        this.saveUser({ id: data.userId, email: data.email || 'guest@videokurs.com', name: 'Misafir Kullanıcı' });
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
   }
 }
 

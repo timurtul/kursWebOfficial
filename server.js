@@ -183,11 +183,42 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Erişim kodu doğrulama
-app.post('/api/verify-access-code', authenticateToken, async (req, res) => {
+// Erişim kodu doğrulama (authentication olmadan çalışır)
+app.post('/api/verify-access-code', async (req, res) => {
   try {
     const { code, courseId } = req.body;
-    const userId = req.user.userId;
+    
+    // Eğer token varsa kullan, yoksa geçici kullanıcı oluştur
+    let userId;
+    let userEmail = 'guest@videokurs.com';
+    
+    // Token kontrolü (varsa kullan)
+    const authHeader = req.headers['authorization'];
+    let token = authHeader && authHeader.split(' ')[1];
+    
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        userId = decoded.userId;
+        userEmail = decoded.email;
+      } catch (err) {
+        // Token geçersiz, geçici kullanıcı oluştur
+        token = null;
+      }
+    }
+    
+    // Token yoksa geçici kullanıcı oluştur
+    if (!userId) {
+      const tempUser = await prisma.user.create({
+        data: {
+          email: `guest_${Date.now()}@videokurs.com`,
+          password: await bcrypt.hash(Math.random().toString(36), 10),
+          name: 'Misafir Kullanıcı'
+        }
+      });
+      userId = tempUser.id;
+      userEmail = tempUser.email;
+    }
 
     if (!code || !courseId) {
       return res.status(400).json({ error: 'Kod ve kurs ID gerekli' });
@@ -229,13 +260,24 @@ app.post('/api/verify-access-code', authenticateToken, async (req, res) => {
       data: { usedCount: accessCode.usedCount + 1 }
     });
 
+    // Mevcut token'dan accessCodeSession'ı al (varsa)
+    let existingAccessCodeSession = {};
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        existingAccessCodeSession = decoded.accessCodeSession || {};
+      } catch (err) {
+        // Token geçersiz, boş session
+      }
+    }
+
     // JWT token'a access code bilgisini ekle
-    const token = jwt.sign(
+    const newToken = jwt.sign(
       {
         userId,
-        email: req.user.email,
+        email: userEmail,
         accessCodeSession: {
-          ...(req.user.accessCodeSession || {}),
+          ...existingAccessCodeSession,
           [courseId]: true
         }
       },
@@ -245,7 +287,9 @@ app.post('/api/verify-access-code', authenticateToken, async (req, res) => {
 
     res.json({
       message: 'Erişim kodu doğrulandı',
-      token,
+      token: newToken,
+      userId,
+      email: userEmail,
       course: {
         id: accessCode.course.id,
         title: accessCode.course.title
