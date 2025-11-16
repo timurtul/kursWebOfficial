@@ -49,21 +49,43 @@ async function main() {
     }))
   });
 
-  // Örnek erişim kodu
-  await prisma.accessCode.upsert({
-    where: { code: '222222222' },
-    update: {},
-    create: {
-      code: '222222222',
-      courseId: course.id,
-      maxUses: null, // Sınırsız
-      isActive: true
-    }
-  });
+  // Belirli erişim kodları (tire olmadan kaydedilecek)
+  const accessCodes = [
+    '001201150',
+    '002341150',
+    '003285393',
+    '004505343',
+    '005132222',
+    '006493232',
+    '007494285',
+    '008590254',
+    '009954237',
+    '010858595',
+    '011494303',
+    '012492242'
+  ];
+
+  // Kodları veritabanına ekle
+  for (const code of accessCodes) {
+    await prisma.accessCode.upsert({
+      where: { code },
+      update: {},
+      create: {
+        code: code,
+        courseId: course.id,
+        maxUses: null, // Sınırsız kullanım
+        isActive: true
+      }
+    });
+  }
 
   console.log('✅ Seed tamamlandı.');
   console.log(`Demo kullanıcı: ${demoUser.email} / demo1234`);
-  console.log(`Erişim kodu: 222-222-222`);
+  console.log(`\n📝 Erişim kodları:`);
+  accessCodes.forEach((code, index) => {
+    const formattedCode = code.match(/.{1,3}/g).join('-');
+    console.log(`  ${index + 1}. ${formattedCode}`);
+  });
 }
 
 main()
