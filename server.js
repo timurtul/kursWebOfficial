@@ -452,10 +452,13 @@ app.post('/api/purchase', authenticateToken, async (req, res) => {
   }
 });
 
-// Kullanıcının satın aldığı kursları listele
+// Kullanıcının satın aldığı kursları listele (purchase + access code)
 app.get('/api/my-courses', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
+    const accessCodeSession = req.user.accessCodeSession || {};
+    
+    // Purchase'ları al
     const userPurchases = await prisma.purchase.findMany({
       where: {
         userId,
@@ -469,13 +472,35 @@ app.get('/api/my-courses', authenticateToken, async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    const userCourses = userPurchases.map(purchase => ({
-      id: purchase.course.id,
-      title: purchase.course.title,
-      description: purchase.course.description,
-      purchasedAt: purchase.createdAt,
-      videoCount: purchase.course.modules.length
-    }));
+    const purchaseCourseIds = userPurchases.map(p => p.course.id);
+    
+    // Access code ile erişilen kursları al
+    const accessCodeCourseIds = Object.keys(accessCodeSession)
+      .map(id => parseInt(id, 10))
+      .filter(id => accessCodeSession[id] === true);
+    
+    // Tüm erişimli kurs ID'lerini birleştir
+    const allAccessibleCourseIds = [...new Set([...purchaseCourseIds, ...accessCodeCourseIds])];
+    
+    // Tüm kursları al
+    const allCourses = await prisma.course.findMany({
+      where: {
+        id: { in: allAccessibleCourseIds }
+      },
+      include: { modules: true }
+    });
+
+    const userCourses = allCourses.map(course => {
+      const purchase = userPurchases.find(p => p.courseId === course.id);
+      return {
+        id: course.id,
+        title: course.title,
+        description: course.description,
+        purchasedAt: purchase ? purchase.createdAt : null,
+        videoCount: course.modules.length,
+        accessType: purchase ? 'purchase' : 'access_code'
+      };
+    });
 
     res.json(userCourses);
   } catch (error) {

@@ -312,9 +312,8 @@
                 const hasAccess = myCourses.some(c => c.id === courseId);
                 
                 if (!hasAccess) {
-                    // Erişim yoksa modal göster
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('accessCodeModal').classList.add('active');
+                    // Erişim yoksa access-code sayfasına yönlendir
+                    window.location.href = `access-code.html?courseId=${courseId}`;
                     return;
                 }
 
