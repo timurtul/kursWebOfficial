@@ -6,115 +6,280 @@
     <title>Kurs İzleme - Video Kurs</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .course-player-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 2rem;
+        * {
+            box-sizing: border-box;
         }
-        
-        .video-player-section {
-            background: #000;
-            border-radius: 12px;
+
+        body {
+            background: #f7f9fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .course-player-wrapper {
+            display: flex;
+            min-height: calc(100vh - 60px);
+            padding-top: 60px;
+        }
+
+        .video-main-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            margin-right: 320px;
+            transition: margin-right 0.3s ease;
+        }
+
+        .video-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fff;
+        }
+
+        .video-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            line-height: 1.4;
+        }
+
+        .video-header .course-progress {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .progress-bar-container {
+            margin-top: 0.5rem;
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
             overflow: hidden;
-            position: relative;
-            padding-bottom: 56.25%; /* 16:9 aspect ratio */
-            height: 0;
         }
-        
-        .video-player-section video {
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #8d3af6 0%, #6d28d9 100%);
+            transition: width 0.3s ease;
+        }
+
+        .video-player-container {
+            position: relative;
+            background: #000;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            overflow: hidden;
+        }
+
+        .video-player-container video {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            object-fit: contain;
         }
-        
+
+        .video-info-section {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .video-info-section h2 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .video-info-section p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
         .course-sidebar {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-height: 80vh;
+            position: fixed;
+            right: 0;
+            top: 60px;
+            width: 320px;
+            height: calc(100vh - 60px);
+            background: #fff;
+            border-left: 1px solid #e5e7eb;
             overflow-y: auto;
+            z-index: 100;
         }
-        
-        .course-title {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            color: var(--text-dark);
+
+        .sidebar-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
-        
+
+        .sidebar-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
         .module-list {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-        
+
         .module-section {
-            margin: 2rem 0 1rem 0;
+            border-bottom: 1px solid #f3f4f6;
         }
-        
-        .module-section-title {
-            font-size: 1.2rem;
-            font-weight: 800;
-            color: var(--primary-color);
-            margin-bottom: 0.25rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .module-section-subtitle {
-            font-size: 0.95rem;
-            color: var(--text-light);
-            margin-bottom: 0.5rem;
-        }
-        
-        .module-item {
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            background: var(--bg-light);
-            border-radius: 8px;
+
+        .module-section-header {
+            padding: 1rem 1.5rem;
             cursor: pointer;
-            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background 0.2s ease;
         }
-        
+
+        .module-section-header:hover {
+            background: #f9fafb;
+        }
+
+        .module-section-header.active {
+            background: #f9fafb;
+        }
+
+        .module-section-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #1f2937;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .module-section-count {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-left: 0.5rem;
+        }
+
+        .section-toggle {
+            font-size: 0.75rem;
+            color: #6b7280;
+            transition: transform 0.2s ease;
+        }
+
+        .module-section-header.collapsed .section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .module-items {
+            display: block;
+        }
+
+        .module-section.collapsed .module-items {
+            display: none;
+        }
+
+        .module-item {
+            padding: 0.875rem 1.5rem 0.875rem 2.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: background 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
         .module-item:hover {
-            background: rgba(141, 58, 246, 0.1);
-            transform: translateX(5px);
+            background: #f9fafb;
         }
-        
+
         .module-item.active {
-            background: var(--gradient);
-            color: var(--white);
+            background: #f3f4f6;
+            border-left-color: #8d3af6;
         }
-        
-        .module-item h4 {
-            margin: 0 0 0.5rem 0;
-            font-size: 1rem;
+
+        .module-check {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #10b981;
+            color: white;
+            font-size: 0.75rem;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
-        
-        .module-item p {
-            margin: 0;
-            font-size: 0.9rem;
-            opacity: 0.8;
+
+        .module-item.completed .module-check {
+            display: flex;
         }
-        
-        .loading {
+
+        .module-item.completed .module-number {
+            display: none;
+        }
+
+        .module-check svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .module-number {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .module-item.active .module-number {
+            background: #8d3af6;
+            color: white;
+        }
+
+        .module-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .module-content h4 {
+            margin: 0 0 0.25rem 0;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1f2937;
+            line-height: 1.4;
+        }
+
+        .module-content .module-duration {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .loading, .error {
             text-align: center;
             padding: 3rem;
-            color: var(--text-light);
+            color: #6b7280;
         }
-        
+
         .error {
-            text-align: center;
-            padding: 3rem;
-            color: var(--danger);
+            color: #ef4444;
         }
-        
+
         .access-code-modal {
             display: none;
             position: fixed;
@@ -127,11 +292,11 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .access-code-modal.active {
             display: flex;
         }
-        
+
         .access-code-box {
             background: white;
             padding: 2rem;
@@ -140,12 +305,12 @@
             width: 90%;
             text-align: center;
         }
-        
+
         .access-code-box h3 {
             margin-bottom: 1rem;
-            color: var(--text-dark);
+            color: #1f2937;
         }
-        
+
         .access-code-input {
             width: 100%;
             padding: 1rem;
@@ -157,16 +322,16 @@
             margin-bottom: 1rem;
             text-transform: uppercase;
         }
-        
+
         .access-code-input:focus {
             outline: none;
-            border-color: var(--primary-color);
+            border-color: #8d3af6;
         }
-        
+
         .access-code-button {
             width: 100%;
             padding: 1rem;
-            background: var(--gradient);
+            background: linear-gradient(90deg, #8d3af6 0%, #6d28d9 100%);
             color: white;
             border: none;
             border-radius: 8px;
@@ -175,24 +340,70 @@
             cursor: pointer;
             margin-bottom: 0.5rem;
         }
-        
+
         .access-code-button:hover {
             opacity: 0.9;
         }
-        
+
         .access-code-error {
-            color: var(--danger);
+            color: #ef4444;
             margin-top: 0.5rem;
             font-size: 0.9rem;
         }
-        
-        @media (max-width: 968px) {
-            .course-player-container {
-                grid-template-columns: 1fr;
+
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #8d3af6;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(141, 58, 246, 0.4);
+            cursor: pointer;
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .video-main-section {
+                margin-right: 0;
             }
-            
+
             .course-sidebar {
-                max-height: none;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            }
+
+            .course-sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-toggle {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .video-header {
+                padding: 1rem 1.5rem;
+            }
+
+            .video-header h1 {
+                font-size: 1.25rem;
+            }
+
+            .video-info-section {
+                padding: 1rem 1.5rem;
+            }
+
+            .course-sidebar {
+                width: 100%;
             }
         }
     </style>
@@ -219,7 +430,7 @@
     </nav>
 
     <!-- Course Player -->
-    <div class="container" style="padding-top: 2rem;">
+    <div class="course-player-wrapper">
         <div id="loading" class="loading">
             <p>Kurs yükleniyor...</p>
         </div>
@@ -232,27 +443,46 @@
         <div id="accessCodeModal" class="access-code-modal">
             <div class="access-code-box">
                 <h3>Erişim Kodu Gerekli</h3>
-                <p style="margin-bottom: 1.5rem; color: var(--text-light);">Bu kursu izlemek için erişim kodunuzu girin</p>
+                <p style="margin-bottom: 1.5rem; color: #6b7280;">Bu kursu izlemek için erişim kodunuzu girin</p>
                 <input type="text" id="accessCodeInput" class="access-code-input" placeholder="222-222-222" maxlength="11">
                 <button class="access-code-button" onclick="verifyAccessCode()">Kodu Doğrula</button>
                 <div id="accessCodeError" class="access-code-error"></div>
             </div>
         </div>
         
-        <div id="coursePlayer" class="course-player-container" style="display: none;">
-            <div class="video-player-section">
+        <div id="coursePlayer" class="video-main-section" style="display: none;">
+            <div class="video-header">
+                <h1 id="courseTitle">Kurs Başlığı</h1>
+                <div class="course-progress">
+                    <span id="progressText">0 / 0 ders tamamlandı</span>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="video-player-container">
                 <video id="videoPlayer" controls>
                     Video yükleniyor...
                 </video>
             </div>
             
-            <div class="course-sidebar">
-                <h2 class="course-title" id="courseTitle">Kurs Başlığı</h2>
-                <ul class="module-list" id="moduleList">
-                    <!-- Modüller buraya eklenecek -->
-                </ul>
+            <div class="video-info-section">
+                <h2 id="currentVideoTitle">Video Başlığı</h2>
+                <p id="currentVideoInfo">Video bilgileri yükleniyor...</p>
             </div>
         </div>
+        
+        <div class="course-sidebar" id="courseSidebar">
+            <div class="sidebar-header">
+                <h3>Kurs İçeriği</h3>
+            </div>
+            <ul class="module-list" id="moduleList">
+                <!-- Modüller buraya eklenecek -->
+            </ul>
+        </div>
+        
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">☰</button>
     </div>
 
     <script src="api.js"></script>
@@ -344,6 +574,19 @@
             }
         });
 
+        // Sidebar toggle (mobil için)
+        function toggleSidebar() {
+            const sidebar = document.getElementById('courseSidebar');
+            sidebar.classList.toggle('open');
+        }
+
+        // Format duration (saniye -> dakika)
+        function formatDuration(seconds) {
+            if (!seconds) return '0 dk';
+            const minutes = Math.floor(seconds / 60);
+            return `${minutes} dk`;
+        }
+
         // Kurs bilgilerini yükle
         async function loadCourse() {
             try {
@@ -367,40 +610,92 @@
                 const moduleList = document.getElementById('moduleList');
                 moduleList.innerHTML = '';
                 
+                let currentSection = null;
+                let sectionModules = [];
+                
                 currentCourse.modules.forEach((module, index) => {
                     const section = sectionLookup[index];
-                    if (section) {
-                        const sectionWrapper = document.createElement('div');
-                        sectionWrapper.className = 'module-section';
-                        sectionWrapper.innerHTML = `
-                            <div class="module-section-title">${section.title}</div>
-                            <div class="module-section-subtitle">${section.description}</div>
-                        `;
-                        moduleList.appendChild(sectionWrapper);
-                    }
-
-                    const li = document.createElement('li');
-                    li.className = 'module-item';
-                    if (index === 0) li.classList.add('active');
                     
-                    li.innerHTML = `
-                        <h4>${module.title}</h4>
-                        <p>Video ${index + 1}/${currentCourse.modules.length}</p>
+                    // Yeni section başlıyor
+                    if (section) {
+                        // Önceki section'ı kapat
+                        if (currentSection) {
+                            const sectionDiv = document.createElement('div');
+                            sectionDiv.className = 'module-section';
+                            sectionDiv.innerHTML = `
+                                <div class="module-section-header" onclick="toggleSection(this)">
+                                    <div>
+                                        <span class="module-section-title">${currentSection.title}</span>
+                                        <span class="module-section-count">${sectionModules.length} ders</span>
+                                    </div>
+                                    <span class="section-toggle">▼</span>
+                                </div>
+                                <div class="module-items">
+                                    ${sectionModules.join('')}
+                                </div>
+                            `;
+                            moduleList.appendChild(sectionDiv);
+                        }
+                        
+                        // Yeni section başlat
+                        currentSection = section;
+                        sectionModules = [];
+                    }
+                    
+                    // Modül item'ı oluştur
+                    const moduleItem = `
+                        <div class="module-item ${index === 0 ? 'active' : ''}" onclick="loadVideo(${index})">
+                            <div class="module-check">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </div>
+                            <div class="module-number">${index + 1}</div>
+                            <div class="module-content">
+                                <h4>${module.title}</h4>
+                                <span class="module-duration">${formatDuration(module.duration || 0)}</span>
+                            </div>
+                        </div>
                     `;
                     
-                    li.addEventListener('click', () => {
-                        loadVideo(index);
-                    });
-                    
-                    moduleList.appendChild(li);
+                    sectionModules.push(moduleItem);
                 });
+                
+                // Son section'ı kapat
+                if (currentSection) {
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.className = 'module-section';
+                    sectionDiv.innerHTML = `
+                        <div class="module-section-header" onclick="toggleSection(this)">
+                            <div>
+                                <span class="module-section-title">${currentSection.title}</span>
+                                <span class="module-section-count">${sectionModules.length} ders</span>
+                            </div>
+                            <span class="section-toggle">▼</span>
+                        </div>
+                        <div class="module-items">
+                            ${sectionModules.join('')}
+                        </div>
+                    `;
+                    moduleList.appendChild(sectionDiv);
+                }
+                
+                // Section toggle fonksiyonu
+                window.toggleSection = function(header) {
+                    const section = header.closest('.module-section');
+                    section.classList.toggle('collapsed');
+                    header.classList.toggle('collapsed');
+                };
+                
+                // Progress güncelle
+                updateProgress(0);
                 
                 // İlk videoyu yükle
                 loadVideo(0);
                 
                 // Loading'i gizle, player'ı göster
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('coursePlayer').style.display = 'grid';
+                document.getElementById('coursePlayer').style.display = 'flex';
                 
             } catch (error) {
                 console.error('Kurs yükleme hatası:', error);
@@ -408,6 +703,17 @@
                 document.getElementById('error').style.display = 'block';
                 document.getElementById('errorMessage').textContent = error.message || 'Kurs yüklenirken bir hata oluştu.';
             }
+        }
+
+        // Progress güncelle
+        function updateProgress(completedCount) {
+            if (!currentCourse || !currentCourse.modules) return;
+            
+            const total = currentCourse.modules.length;
+            const percentage = total > 0 ? (completedCount / total) * 100 : 0;
+            
+            document.getElementById('progressText').textContent = `${completedCount} / ${total} ders tamamlandı`;
+            document.getElementById('progressBar').style.width = `${percentage}%`;
         }
 
         // Video yükle
@@ -423,20 +729,42 @@
             const videoPlayer = document.getElementById('videoPlayer');
             videoPlayer.src = videoUrl;
             
+            // Video bilgilerini güncelle
+            document.getElementById('currentVideoTitle').textContent = module.title;
+            document.getElementById('currentVideoInfo').textContent = `Video ${index + 1} / ${currentCourse.modules.length} • ${formatDuration(module.duration || 0)}`;
+            
             // Modül listesindeki aktif durumu güncelle
             document.querySelectorAll('.module-item').forEach((item, i) => {
                 if (i === index) {
                     item.classList.add('active');
+                    // Aktif modülü görünür yap (scroll into view)
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
                     item.classList.remove('active');
                 }
             });
             
+            // Mobilde sidebar'ı kapat
+            if (window.innerWidth <= 1024) {
+                document.getElementById('courseSidebar').classList.remove('open');
+            }
+            
             // Video yükleme hatası
             videoPlayer.addEventListener('error', function() {
                 console.error('Video yüklenemedi:', videoUrl);
                 alert('Video yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.');
-            });
+            }, { once: true });
+            
+            // Video bitince progress güncelle (isteğe bağlı - localStorage ile takip edilebilir)
+            videoPlayer.addEventListener('ended', function() {
+                const item = document.querySelectorAll('.module-item')[index];
+                if (item && !item.classList.contains('completed')) {
+                    item.classList.add('completed');
+                    // Tamamlanan modül sayısını hesapla
+                    const completed = document.querySelectorAll('.module-item.completed').length;
+                    updateProgress(completed);
+                }
+            }, { once: true });
         }
 
         // Sayfa yüklendiğinde kursu yükle
