@@ -6,13 +6,24 @@ const path = require('path');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { PrismaClient } = require('@prisma/client');
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
-const VIDEO_DIR = path.join(__dirname, 'videos'); // Video dosyalarının saklanacağı klasör
+const VIDEO_DIR = path.join(__dirname, 'videos'); // Local video fallback
 const prisma = new PrismaClient();
+
+// AWS S3 Client
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
+});
 
 // Middleware
 app.use(cors());
@@ -28,6 +39,13 @@ const limiter = rateLimit({
   max: 100 // Her IP için maksimum 100 istek
 });
 app.use('/api/', limiter);
+
+// Kod doğrulama için özel rate limiting (brute force koruması)
+const codeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 dakika
+  max: 10, // Her IP için maksimum 10 kod denemesi
+  message: 'Çok fazla deneme yaptınız. Lütfen 15 dakika sonra tekrar deneyin.'
+});
 
 // Video klasörünü oluştur (yoksa)
 if (!fs.existsSync(VIDEO_DIR)) {
@@ -184,7 +202,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Erişim kodu doğrulama (authentication olmadan çalışır)
-app.post('/api/verify-access-code', async (req, res) => {
+app.post('/api/verify-access-code', codeLimiter, async (req, res) => {
   try {
     const { code, courseId } = req.body;
     
@@ -389,31 +407,40 @@ app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCour
     }
 
     const matchingFile = module.videoFile;
-    const videoPath = path.join(VIDEO_DIR, matchingFile);
 
-    // Dosya var mı kontrol et - case-insensitive arama
-    let actualFilePath = videoPath;
-    if (!fs.existsSync(videoPath)) {
-      const files = fs.readdirSync(VIDEO_DIR);
-      const foundFile = files.find(f => f.toLowerCase() === matchingFile.toLowerCase());
-      if (foundFile) {
-        actualFilePath = path.join(VIDEO_DIR, foundFile);
-      } else {
-        return res.status(404).json({ error: 'Video dosyası bulunamadı' });
-      }
+    // Önce S3 signed URL dene
+    try {
+      const signedUrl = await getSignedUrl(
+        s3Client,
+        new GetObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET,
+          Key: `videos/${matchingFile}`
+        }),
+        { expiresIn: 3600 }
+      );
+
+      return res.redirect(signedUrl);
+    } catch (s3Error) {
+      console.error('S3 video erişim hatası:', s3Error);
+      // S3 başarısız olursa local fallback deneriz
     }
 
-    const stat = fs.statSync(actualFilePath);
+    // Local fallback (videolar videos/ klasöründe)
+    const videoPath = path.join(VIDEO_DIR, matchingFile);
+    if (!fs.existsSync(videoPath)) {
+      return res.status(404).json({ error: 'Video dosyası bulunamadı' });
+    }
+
+    const stat = fs.statSync(videoPath);
     const fileSize = stat.size;
     const range = req.headers.range;
 
-    // Range request desteği (video oynatma için gerekli)
     if (range) {
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
       const chunksize = (end - start) + 1;
-      const file = fs.createReadStream(actualFilePath, { start, end });
+      const file = fs.createReadStream(videoPath, { start, end });
       const head = {
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
         'Accept-Ranges': 'bytes',
@@ -430,7 +457,7 @@ app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCour
         'Cache-Control': 'no-cache'
       };
       res.writeHead(200, head);
-      fs.createReadStream(actualFilePath).pipe(res);
+      fs.createReadStream(videoPath).pipe(res);
     }
   } catch (error) {
     console.error('Video stream error:', error);
