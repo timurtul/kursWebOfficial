@@ -12,7 +12,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'WUkOFXQ0+5Z6lf8WPfaJKYhfjQ2EbwGxgMz82FWJkx0=PORT=3000';
 const VIDEO_DIR = path.join(__dirname, 'videos'); // Local video fallback
 const prisma = new PrismaClient();
 
