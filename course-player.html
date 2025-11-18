@@ -54,6 +54,25 @@
             margin: 0;
         }
         
+        .module-section {
+            margin: 2rem 0 1rem 0;
+        }
+        
+        .module-section-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .module-section-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+        
         .module-item {
             padding: 1rem;
             margin-bottom: 0.5rem;
@@ -255,6 +274,27 @@
 
         let currentCourse = null;
         let currentVideoIndex = 0;
+        const moduleSections = [
+            {
+                startIndex: 0,
+                title: 'Bölüm 1 · Temeller',
+                description: 'Kursa hazırlık, temel kavramlar ve doğru mindset ile başla.'
+            },
+            {
+                startIndex: 2,
+                title: 'Bölüm 2 · Uygulama',
+                description: 'Gerçek hayat senaryoları, ajanda kurulumu ve otomasyon akışları.'
+            },
+            {
+                startIndex: 4,
+                title: 'Bölüm 3 · Uzmanlık',
+                description: 'Performans optimizasyonu, müşteri sunumu ve satış stratejileri.'
+            }
+        ];
+        const sectionLookup = moduleSections.reduce((acc, section) => {
+            acc[section.startIndex] = section;
+            return acc;
+        }, {});
 
         // Erişim kodu doğrulama
         async function verifyAccessCode() {
@@ -328,6 +368,17 @@
                 moduleList.innerHTML = '';
                 
                 currentCourse.modules.forEach((module, index) => {
+                    const section = sectionLookup[index];
+                    if (section) {
+                        const sectionWrapper = document.createElement('div');
+                        sectionWrapper.className = 'module-section';
+                        sectionWrapper.innerHTML = `
+                            <div class="module-section-title">${section.title}</div>
+                            <div class="module-section-subtitle">${section.description}</div>
+                        `;
+                        moduleList.appendChild(sectionWrapper);
+                    }
+
                     const li = document.createElement('li');
                     li.className = 'module-item';
                     if (index === 0) li.classList.add('active');
