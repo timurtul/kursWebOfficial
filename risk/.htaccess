@@ -1,0 +1,3 @@
+RewriteEngine On
+RewriteBase /risk/
+RewriteRule ^$ index.php [L]

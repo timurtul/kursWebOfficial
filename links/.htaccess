@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# HTTPS yönlendirmesi (önce güvenli bağlantıyı zorla)
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# .php uzantısını gizle
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^([^\.]+)$ $1.php [NC,L]
