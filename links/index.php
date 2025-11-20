@@ -22,7 +22,7 @@
     <main class="min-h-full flex items-center justify-center px-4 py-16">
         <section class="w-full max-w-md text-center" aria-labelledby="profile-heading">
             <img
-                src="https://media.licdn.com/dms/image/v2/D4D03AQHjpcwlSSK0Sg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1699525158270?e=1762992000&v=beta&t=doea86UvEtU56cddnsmvJz2A82xFI_VIIj11tn0EoJI"
+                src="https://soare.agency/assets/image/timur.jpeg"
                 alt="Profile avatar"
                 class="mx-auto h-24 w-24 rounded-full object-cover"
                 loading="lazy"
