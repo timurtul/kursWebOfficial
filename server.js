@@ -592,13 +592,15 @@ app.get('/', (req, res) => {
 });
 
 // Statik mikro siteler
-app.get(['/links', '/links/'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'links', 'index.php'));
-});
+const serveStaticPage = (relativePath) => (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.sendFile(path.join(__dirname, relativePath));
+};
 
-app.get(['/risk', '/risk/'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'risk', 'index.php'));
-});
+app.get(['/links', '/links/'], serveStaticPage(path.join('links', 'index.php')));
+app.get(['/risk', '/risk/'], serveStaticPage(path.join('risk', 'index.php')));
+app.get(['/yapayzeka', '/yapayzeka/'], serveStaticPage(path.join('yapayzeka', 'index.php')));
+app.get(['/egitim', '/egitim/'], serveStaticPage(path.join('egitim', 'index.php')));
 
 // ========== ERROR HANDLING ==========
 app.use((err, req, res, next) => {
