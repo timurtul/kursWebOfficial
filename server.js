@@ -591,6 +591,15 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Statik mikro siteler
+app.get(['/links', '/links/'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'links', 'index.php'));
+});
+
+app.get(['/risk', '/risk/'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'risk', 'index.php'));
+});
+
 // ========== ERROR HANDLING ==========
 app.use((err, req, res, next) => {
   console.error(err.stack);
