@@ -36,6 +36,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (videoPlaceholder) {
         videoPlaceholder.addEventListener('click', async function() {
+            const previewUrl = this.dataset.previewVideo;
+            if (previewUrl) {
+                insertVideo(this.parentElement, previewUrl);
+                return;
+            }
+
             // Kullanıcı giriş yapmış mı kontrol et
             if (!API.isAuthenticated()) {
                 alert('Video izlemek için önce giriş yapmanız ve kursu satın almanız gerekiyor.');
@@ -66,25 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const videoUrl = API.getVideoUrl(courseId, firstVideo.fileName);
                     
                     // HTML5 video player oluştur
-                    const video = document.createElement('video');
-                    video.src = videoUrl;
-                    video.controls = true;
-                    video.style.width = '100%';
-                    video.style.height = '100%';
-                    video.style.objectFit = 'contain';
-                    video.style.position = 'absolute';
-                    video.style.top = '0';
-                    video.style.left = '0';
-                    
-                    // Replace placeholder with video
-                    this.parentElement.innerHTML = '';
-                    this.parentElement.appendChild(video);
-                    
-                    // Video yükleme hatası kontrolü
-                    video.addEventListener('error', function() {
-                        console.error('Video yüklenemedi');
-                        alert('Video yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
-                    });
+                    insertVideo(this.parentElement, videoUrl);
                 }
             } catch (error) {
                 console.error('Video yükleme hatası:', error);
@@ -93,6 +81,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function insertVideo(container, src) {
+    container.innerHTML = '';
+    const video = document.createElement('video');
+    video.src = src;
+    video.controls = true;
+    video.autoplay = true;
+    video.muted = true;
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'cover';
+    video.style.position = 'absolute';
+    video.style.top = '0';
+    video.style.left = '0';
+    container.appendChild(video);
+    video.addEventListener('error', function() {
+        console.error('Video yüklenemedi');
+        alert('Video yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
+    });
+}
 
 // Form submission handler - Backend entegrasyonu
 async function handleSubmit(event) {
