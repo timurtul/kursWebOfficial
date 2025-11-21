@@ -31,10 +31,13 @@ function toggleFaq(element) {
 }
 
 // Video placeholder click handler - Backend entegrasyonu
+const PREVIEW_IMAGE_FALLBACK = 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=80';
+
 document.addEventListener('DOMContentLoaded', function() {
     const videoPlaceholder = document.querySelector('.video-placeholder');
     
     if (videoPlaceholder) {
+        setPlaceholderImage(videoPlaceholder);
         videoPlaceholder.addEventListener('click', async function() {
             const previewUrl = this.dataset.previewVideo;
             if (previewUrl) {
@@ -82,13 +85,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+function setPlaceholderImage(element) {
+    if (!element) return;
+    const image = element.dataset.previewImage || PREVIEW_IMAGE_FALLBACK;
+    element.style.backgroundImage = `linear-gradient(180deg, rgba(15, 11, 54, 0.88), rgba(15, 11, 54, 0.7)), url('${image}')`;
+}
+
 function insertVideo(container, src) {
     container.innerHTML = '';
     const video = document.createElement('video');
     video.src = src;
     video.controls = true;
-    video.autoplay = true;
-    video.muted = true;
+    video.autoplay = false;
+    video.muted = false;
+    video.setAttribute('playsinline', '');
+    video.volume = 1;
     video.style.width = '100%';
     video.style.height = '100%';
     video.style.objectFit = 'cover';
@@ -100,6 +111,7 @@ function insertVideo(container, src) {
         console.error('Video yüklenemedi');
         alert('Video yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
     });
+    video.play().catch(() => {});
 }
 
 // Form submission handler - Backend entegrasyonu
