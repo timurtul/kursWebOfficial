@@ -31,7 +31,7 @@ function toggleFaq(element) {
 }
 
 // Video placeholder click handler - Backend entegrasyonu
-const PREVIEW_IMAGE_FALLBACK = 'https://i.hizliresim.com/njko9mp.png';
+const PREVIEW_IMAGE_FALLBACK = 'https://vekilify.com/thumb.png';
 
 document.addEventListener('DOMContentLoaded', function() {
     const videoPlaceholder = document.querySelector('.video-placeholder');
