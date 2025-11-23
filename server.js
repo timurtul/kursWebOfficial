@@ -413,37 +413,34 @@ app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCour
     if (process.env.AWS_S3_BUCKET) {
       try {
         const s3Key = `videos/${matchingFile}`;
-        const command = new GetObjectCommand({
-          Bucket: process.env.AWS_S3_BUCKET,
-          Key: s3Key
-        });
-
-        // S3'ten video metadata'sını al
-        const s3Response = await s3Client.send(command);
-        const contentLength = s3Response.ContentLength;
-        const contentType = s3Response.ContentType || 'video/mp4';
-
-        // Range request desteği
+        console.log(`[Video Stream] S3'ten video stream ediliyor: ${s3Key}`);
+        
+        // Range request varsa direkt range ile al
         if (range) {
           const parts = range.replace(/bytes=/, '').split('-');
           const start = parseInt(parts[0], 10);
-          const end = parts[1] ? parseInt(parts[1], 10) : contentLength - 1;
-          const chunksize = (end - start) + 1;
+          const end = parts[1] ? parseInt(parts[1], 10) : undefined;
 
-          // S3'ten belirli byte range'ini al
           const rangeCommand = new GetObjectCommand({
             Bucket: process.env.AWS_S3_BUCKET,
             Key: s3Key,
-            Range: `bytes=${start}-${end}`
+            Range: end !== undefined ? `bytes=${start}-${end}` : `bytes=${start}-`
           });
 
           const rangeResponse = await s3Client.send(rangeCommand);
           
+          // Content-Range header'ından toplam boyutu al
+          const contentRange = rangeResponse.ContentRange;
+          const totalSize = contentRange ? parseInt(contentRange.split('/')[1]) : rangeResponse.ContentLength;
+          const chunksize = rangeResponse.ContentLength;
+          
+          console.log(`[Video Stream] S3 Range Response: ${contentRange}, Size: ${chunksize}`);
+          
           res.writeHead(206, {
-            'Content-Range': `bytes ${start}-${end}/${contentLength}`,
+            'Content-Range': contentRange || `bytes ${start}-${start + chunksize - 1}/${totalSize}`,
             'Accept-Ranges': 'bytes',
             'Content-Length': chunksize,
-            'Content-Type': contentType,
+            'Content-Type': rangeResponse.ContentType || 'video/mp4',
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
             'Expires': '0'
@@ -453,6 +450,17 @@ app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCour
           rangeResponse.Body.pipe(res);
         } else {
           // Tam video stream
+          const command = new GetObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET,
+            Key: s3Key
+          });
+
+          const s3Response = await s3Client.send(command);
+          const contentLength = s3Response.ContentLength;
+          const contentType = s3Response.ContentType || 'video/mp4';
+          
+          console.log(`[Video Stream] S3 Full Response: Size: ${contentLength}, Type: ${contentType}`);
+          
           res.writeHead(200, {
             'Content-Length': contentLength,
             'Content-Type': contentType,
@@ -465,18 +473,31 @@ app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCour
           s3Response.Body.pipe(res);
         }
 
+        console.log(`[Video Stream] S3 stream başarılı: ${s3Key}`);
         return; // S3 başarılı, çık
       } catch (s3Error) {
-        console.error('S3 video erişim hatası:', s3Error);
+        console.error('[Video Stream] S3 video erişim hatası:', {
+          message: s3Error.message,
+          code: s3Error.Code || s3Error.code,
+          key: `videos/${matchingFile}`,
+          error: s3Error
+        });
         // S3 başarısız olursa local fallback deneriz
       }
     }
 
     // Local fallback (videolar videos/ klasöründe)
+    console.log(`[Video Stream] Local fallback deneniyor: ${matchingFile}`);
     const videoPath = path.join(VIDEO_DIR, matchingFile);
     if (!fs.existsSync(videoPath)) {
-      return res.status(404).json({ error: 'Video dosyası bulunamadı' });
+      console.error(`[Video Stream] Video dosyası bulunamadı: ${videoPath}`);
+      return res.status(404).json({ 
+        error: 'Video dosyası bulunamadı',
+        details: `S3'te ve local'de video bulunamadı: ${matchingFile}`
+      });
     }
+    
+    console.log(`[Video Stream] Local video bulundu: ${videoPath}`);
 
     const stat = fs.statSync(videoPath);
     const fileSize = stat.size;

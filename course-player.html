@@ -750,9 +750,34 @@
             }
             
             // Video yükleme hatası
-            videoPlayer.addEventListener('error', function() {
-                console.error('Video yüklenemedi:', videoUrl);
-                alert('Video yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.');
+            videoPlayer.addEventListener('error', function(e) {
+                console.error('Video yükleme hatası:', {
+                    url: videoUrl,
+                    error: videoPlayer.error,
+                    code: videoPlayer.error?.code,
+                    message: videoPlayer.error?.message
+                });
+                
+                let errorMessage = 'Video yüklenirken bir hata oluştu.';
+                if (videoPlayer.error) {
+                    switch(videoPlayer.error.code) {
+                        case 1: // MEDIA_ERR_ABORTED
+                            errorMessage = 'Video yükleme iptal edildi.';
+                            break;
+                        case 2: // MEDIA_ERR_NETWORK
+                            errorMessage = 'Ağ hatası. İnternet bağlantınızı kontrol edin.';
+                            break;
+                        case 3: // MEDIA_ERR_DECODE
+                            errorMessage = 'Video çözümlenemedi. Video dosyası bozuk olabilir.';
+                            break;
+                        case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+                            errorMessage = 'Video formatı desteklenmiyor veya video bulunamadı.';
+                            break;
+                    }
+                }
+                
+                console.error('Detaylı hata:', errorMessage);
+                alert(errorMessage + '\n\nLütfen sayfayı yenileyin veya daha sonra tekrar deneyin.');
             }, { once: true });
             
             // Video bitince progress güncelle (isteğe bağlı - localStorage ile takip edilebilir)
