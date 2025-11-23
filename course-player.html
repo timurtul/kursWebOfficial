@@ -741,21 +741,22 @@
             videoPlayer.parentElement.appendChild(loadingIndicator);
             
             try {
-                // Video'yu MediaSource API ile progressive loading yap
-                // Büyük videolar için chunk'lar halinde yüklenir, token URL'de görünmez
-                const sourceUrl = await API.setupVideoStream(videoPlayer, courseId, module.fileName);
+                // Çok kısa süreli stream token al ve video URL'ini oluştur
+                // Token URL'de görünür ama sadece 20 saniye geçerli, video hemen yüklenmeye başlar
+                const videoUrl = await API.getVideoStreamUrl(courseId, module.fileName);
                 
                 // Önceki blob URL'i temizle (memory leak önleme)
-                if (videoPlayer.src && videoPlayer.src.startsWith('blob:') && videoPlayer.src !== sourceUrl) {
+                if (videoPlayer.src && videoPlayer.src.startsWith('blob:')) {
                     URL.revokeObjectURL(videoPlayer.src);
                 }
                 
-                // Loading'i kaldır (video progressive yüklenecek)
+                // Loading'i kaldır
                 const loadingEl = document.getElementById('videoLoading');
                 if (loadingEl) loadingEl.remove();
                 videoPlayer.style.display = 'block';
                 
-                // Video zaten src'ye set edildi (MediaSource API içinde)
+                // Video'yu oynat (progressive loading - hemen başlar)
+                videoPlayer.src = videoUrl;
                 
                 // Video bilgilerini güncelle
                 document.getElementById('currentVideoTitle').textContent = module.title;
