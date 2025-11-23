@@ -116,17 +116,146 @@ class API {
     return this.request(`/courses/${courseId}`);
   }
 
-  // Video streaming için kısa süreli token al ve URL oluştur
-  // Bu token sadece 5 dakika geçerli, böylece video hemen yüklenmeye başlar
-  static async getVideoStreamUrl(courseId, videoFile) {
+  // Video'yu MediaSource API ile progressive loading yap (büyük videolar için)
+  // Token URL'de görünmez, sadece fetch isteklerinde header'da gönderilir
+  static async setupVideoStream(videoElement, courseId, videoFile) {
     const token = this.getToken();
     if (!token) {
       throw new Error('Giriş yapmanız gerekiyor');
     }
 
+    const url = `${API_BASE_URL}/courses/${courseId}/videos/${encodeURIComponent(videoFile)}`;
+    
+    // MediaSource API desteği kontrolü
+    if (!window.MediaSource || !MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E, mp4a.40.2"')) {
+      console.warn('MediaSource API desteklenmiyor, blob URL kullanılıyor (küçük videolar için)');
+      return this.getVideoBlobUrlFallback(courseId, videoFile);
+    }
+
+    return new Promise((resolve, reject) => {
+      const mediaSource = new MediaSource();
+      const sourceUrl = URL.createObjectURL(mediaSource);
+      
+      videoElement.src = sourceUrl;
+
+      mediaSource.addEventListener('sourceopen', async () => {
+        try {
+          const sourceBuffer = mediaSource.addSourceBuffer('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+          
+          // İlk chunk'ı yükle (video metadata için)
+          const firstChunkSize = 2 * 1024 * 1024; // 2MB
+          const response = await fetch(url, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Range': `bytes=0-${firstChunkSize - 1}`
+            }
+          });
+
+          if (!response.ok && response.status !== 206) {
+            throw new Error(`Video yüklenemedi: ${response.status}`);
+          }
+
+          const arrayBuffer = await response.arrayBuffer();
+          
+          // Content-Range header'ından toplam boyutu al
+          const contentRange = response.headers.get('Content-Range');
+          const totalSize = contentRange ? parseInt(contentRange.split('/')[1]) : response.headers.get('Content-Length');
+          
+          sourceBuffer.addEventListener('updateend', async () => {
+            if (!sourceBuffer.updating && mediaSource.readyState === 'open') {
+              // İlk chunk yüklendi, kalan video'yu yükle
+              try {
+                await this.loadVideoChunks(url, token, sourceBuffer, firstChunkSize, parseInt(totalSize), mediaSource);
+                mediaSource.endOfStream();
+                resolve(sourceUrl);
+              } catch (error) {
+                console.error('Video chunk yükleme hatası:', error);
+                reject(error);
+              }
+            }
+          }, { once: true });
+
+          sourceBuffer.appendBuffer(arrayBuffer);
+        } catch (error) {
+          console.error('MediaSource hatası:', error);
+          reject(error);
+        }
+      });
+
+      mediaSource.addEventListener('error', (e) => {
+        reject(new Error('MediaSource hatası: ' + e.message));
+      });
+    });
+  }
+
+  // Video chunk'larını yükle (progressive loading)
+  static async loadVideoChunks(url, token, sourceBuffer, startByte, totalSize, mediaSource) {
+    const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+    let currentByte = startByte;
+
+    while (currentByte < totalSize && mediaSource.readyState === 'open') {
+      // Buffer doluysa bekle
+      if (sourceBuffer.updating) {
+        await new Promise(resolve => {
+          sourceBuffer.addEventListener('updateend', resolve, { once: true });
+        });
+      }
+
+      // Buffer doluysa tekrar bekle
+      if (sourceBuffer.buffered.length > 0) {
+        const bufferedEnd = sourceBuffer.buffered.end(sourceBuffer.buffered.length - 1);
+        if (bufferedEnd >= totalSize * 0.9) {
+          // %90'ı yüklendi, yeterli
+          break;
+        }
+      }
+
+      const endByte = Math.min(currentByte + chunkSize - 1, totalSize - 1);
+      
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Range': `bytes=${currentByte}-${endByte}`
+          }
+        });
+
+        if (!response.ok && response.status !== 206) {
+          break; // Hata varsa dur
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        
+        if (sourceBuffer.updating) {
+          await new Promise(resolve => {
+            sourceBuffer.addEventListener('updateend', resolve, { once: true });
+          });
+        }
+
+        if (mediaSource.readyState === 'open') {
+          sourceBuffer.appendBuffer(arrayBuffer);
+          currentByte = endByte + 1;
+        } else {
+          break; // MediaSource kapandı
+        }
+      } catch (error) {
+        console.error('Chunk yükleme hatası:', error);
+        break;
+      }
+    }
+  }
+
+  // Fallback: Blob URL (MediaSource desteklenmiyorsa veya küçük videolar için)
+  static async getVideoBlobUrlFallback(courseId, videoFile) {
+    const token = this.getToken();
+    if (!token) {
+      throw new Error('Giriş yapmanız gerekiyor');
+    }
+
+    const url = `${API_BASE_URL}/courses/${courseId}/videos/${encodeURIComponent(videoFile)}`;
+    
     try {
-      // Stream token al
-      const response = await fetch(`${API_BASE_URL}/courses/${courseId}/videos/${videoFile}/token`, {
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -134,24 +263,22 @@ class API {
 
       if (!response.ok) {
         const errorText = await response.text();
-        let errorMessage = `Token alınamadı: ${response.status}`;
+        let errorMessage = `Video yüklenemedi: ${response.status}`;
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.error || errorMessage;
         } catch (e) {
-          // JSON parse hatası
+          if (errorText) {
+            errorMessage = errorText;
+          }
         }
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      const streamToken = data.token;
-
-      // Video URL'ini stream token ile oluştur
-      // Token URL'de görünür ama sadece 5 dakika geçerli
-      return `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}?token=${streamToken}`;
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
     } catch (error) {
-      console.error('Stream token alma hatası:', error);
+      console.error('Video fetch hatası:', error);
       throw error;
     }
   }
