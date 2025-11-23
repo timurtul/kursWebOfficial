@@ -741,16 +741,17 @@
             videoPlayer.parentElement.appendChild(loadingIndicator);
             
             try {
-                // Video'yu fetch edip blob URL oluştur (token URL'de görünmez)
-                const blobUrl = await API.getVideoBlobUrl(courseId, module.fileName);
+                // Kısa süreli stream token al ve video URL'ini oluştur
+                // Token URL'de görünür ama sadece 5 dakika geçerli, video hemen yüklenmeye başlar
+                const videoUrl = await API.getVideoStreamUrl(courseId, module.fileName);
                 
                 // Loading'i kaldır
                 const loadingEl = document.getElementById('videoLoading');
                 if (loadingEl) loadingEl.remove();
                 videoPlayer.style.display = 'block';
                 
-                // Video'yu oynat
-                videoPlayer.src = blobUrl;
+                // Video'yu oynat (progressive loading - hemen başlar)
+                videoPlayer.src = videoUrl;
                 
                 // Video bilgilerini güncelle
                 document.getElementById('currentVideoTitle').textContent = module.title;

@@ -116,27 +116,17 @@ class API {
     return this.request(`/courses/${courseId}`);
   }
 
-  // Video streaming URL (protected) - Token URL'de değil, header'da gönderilir
-  static getVideoUrl(courseId, videoFile) {
-    // Token URL'de değil, sadece endpoint döndür
-    // Video fetch edilirken token header'da gönderilecek
-    return `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}`;
-  }
-
-  // Video'yu fetch edip blob URL oluştur (güvenli - token URL'de görünmez)
-  // NOT: Büyük videolar için tüm video memory'ye yüklenir, bu performans sorunlarına yol açabilir
-  // Gelecekte MediaSource API ile geliştirilebilir
-  static async getVideoBlobUrl(courseId, videoFile) {
+  // Video streaming için kısa süreli token al ve URL oluştur
+  // Bu token sadece 5 dakika geçerli, böylece video hemen yüklenmeye başlar
+  static async getVideoStreamUrl(courseId, videoFile) {
     const token = this.getToken();
     if (!token) {
       throw new Error('Giriş yapmanız gerekiyor');
     }
 
-    const url = `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}`;
-    
     try {
-      // Video'yu fetch et (token header'da, URL'de görünmez)
-      const response = await fetch(url, {
+      // Stream token al
+      const response = await fetch(`${API_BASE_URL}/courses/${courseId}/videos/${videoFile}/token`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -144,25 +134,24 @@ class API {
 
       if (!response.ok) {
         const errorText = await response.text();
-        let errorMessage = `Video yüklenemedi: ${response.status} ${response.statusText}`;
+        let errorMessage = `Token alınamadı: ${response.status}`;
         try {
           const errorJson = JSON.parse(errorText);
           errorMessage = errorJson.error || errorMessage;
         } catch (e) {
-          // JSON parse hatası, text kullan
+          // JSON parse hatası
         }
         throw new Error(errorMessage);
       }
 
-      // Blob oluştur
-      const blob = await response.blob();
-      
-      // Blob URL oluştur (bu URL sadece bu tarayıcı oturumunda geçerli)
-      const blobUrl = URL.createObjectURL(blob);
-      
-      return blobUrl;
+      const data = await response.json();
+      const streamToken = data.token;
+
+      // Video URL'ini stream token ile oluştur
+      // Token URL'de görünür ama sadece 5 dakika geçerli
+      return `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}?token=${streamToken}`;
     } catch (error) {
-      console.error('Video fetch hatası:', error);
+      console.error('Stream token alma hatası:', error);
       throw error;
     }
   }
