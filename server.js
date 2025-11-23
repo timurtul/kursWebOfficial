@@ -379,12 +379,86 @@ app.get('/api/courses/:courseId', async (req, res) => {
 
 // ========== VIDEO STREAMING ENDPOINT ==========
 
-// Güvenli video streaming (token ve erişim kontrolü ile)
-// ÖNEMLİ: Video'lar backend üzerinden stream edilir, URL paylaşılsa bile token kontrolü her istekte yapılır
-app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCourseAccess, async (req, res) => {
+// Video streaming için kısa süreli token oluştur (5 dakika geçerli)
+app.get('/api/courses/:courseId/videos/:videoFile/token', authenticateToken, checkCourseAccess, async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId, 10);
     const videoFile = req.params.videoFile;
+    const userId = req.user.userId;
+    const accessCodeSession = req.user.accessCodeSession || {}; // Access code session bilgisi
+
+    // Kısa süreli stream token oluştur (5 dakika)
+    const streamToken = jwt.sign(
+      { 
+        userId, 
+        courseId, 
+        videoFile,
+        accessCodeSession, // Access code session bilgisini de ekle
+        type: 'stream' // Stream token olduğunu belirt
+      },
+      JWT_SECRET,
+      { expiresIn: '5m' } // 5 dakika geçerli
+    );
+
+    res.json({ 
+      token: streamToken,
+      expiresIn: 300 // 5 dakika (saniye cinsinden)
+    });
+  } catch (error) {
+    console.error('Stream token oluşturma hatası:', error);
+    res.status(500).json({ error: 'Token oluşturulamadı' });
+  }
+});
+
+// Güvenli video streaming (stream token ile)
+// Stream token query parameter'dan alınır (kısa süreli, sadece video streaming için)
+app.get('/api/courses/:courseId/videos/:videoFile', async (req, res) => {
+  try {
+    // Stream token kontrolü
+    const streamToken = req.query.token;
+    if (!streamToken) {
+      return res.status(401).json({ error: 'Stream token bulunamadı' });
+    }
+
+    // Token'ı doğrula
+    let tokenData;
+    try {
+      tokenData = jwt.verify(streamToken, JWT_SECRET);
+      
+      // Stream token olduğunu kontrol et
+      if (tokenData.type !== 'stream') {
+        return res.status(403).json({ error: 'Geçersiz token tipi' });
+      }
+    } catch (err) {
+      return res.status(403).json({ error: 'Geçersiz veya süresi dolmuş token' });
+    }
+
+    const courseId = parseInt(req.params.courseId, 10);
+    const videoFile = req.params.videoFile;
+
+    // Token'daki bilgileri kontrol et
+    if (tokenData.courseId !== courseId || tokenData.videoFile !== videoFile) {
+      return res.status(403).json({ error: 'Token bu video için geçerli değil' });
+    }
+
+    // Kullanıcının kursa erişimi var mı kontrol et
+    const purchase = await prisma.purchase.findFirst({
+      where: {
+        userId: tokenData.userId,
+        courseId: courseId,
+        status: 'COMPLETED'
+      }
+    });
+
+    // Purchase yoksa access code kontrolü
+    if (!purchase) {
+      const accessCodeSession = tokenData.accessCodeSession || {};
+      if (!accessCodeSession[courseId]) {
+        return res.status(403).json({ error: 'Bu kursa erişim yetkiniz yok' });
+      }
+    }
+
+    // Kurs + modüller
 
     // Kurs + modüller
     const course = await prisma.course.findUnique({
