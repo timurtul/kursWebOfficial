@@ -54,15 +54,19 @@ if (!fs.existsSync(VIDEO_DIR)) {
 // Prisma ile Postgres bağlantısı (ENV üzerinden)
 
 // JWT Token doğrulama middleware
-// Video endpoint'leri için token header'dan alınır (güvenlik için)
-// Query parameter desteği kaldırıldı (güvenlik açığı)
+// Video tag'leri Authorization header gönderemediği için query parameter'dan da token okuyoruz
 const authenticateToken = (req, res, next) => {
-  // Authorization header'dan token al
+  // Önce Authorization header'dan dene
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  // Eğer header'da yoksa query parameter'dan al (video tag'leri için)
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
 
   if (!token) {
-    return res.status(401).json({ error: 'Token bulunamadı. Lütfen giriş yapın.' });
+    return res.status(401).json({ error: 'Token bulunamadı' });
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
@@ -379,90 +383,12 @@ app.get('/api/courses/:courseId', async (req, res) => {
 
 // ========== VIDEO STREAMING ENDPOINT ==========
 
-// Video streaming için çok kısa süreli token oluştur (20 saniye geçerli)
-// Bu token URL'de görünür ama çok kısa süreli olduğu için güvenlik riski çok düşük
-app.get('/api/courses/:courseId/videos/:videoFile/stream-token', authenticateToken, checkCourseAccess, async (req, res) => {
+// Güvenli video streaming (token ve erişim kontrolü ile)
+// ÖNEMLİ: Video'lar backend üzerinden stream edilir, URL paylaşılsa bile token kontrolü her istekte yapılır
+app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCourseAccess, async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId, 10);
     const videoFile = req.params.videoFile;
-    const userId = req.user.userId;
-    const accessCodeSession = req.user.accessCodeSession || {};
-
-    // Çok kısa süreli stream token oluştur (20 saniye)
-    const streamToken = jwt.sign(
-      { 
-        userId, 
-        courseId, 
-        videoFile,
-        accessCodeSession,
-        type: 'stream'
-      },
-      JWT_SECRET,
-      { expiresIn: '20s' } // 20 saniye geçerli
-    );
-
-    res.json({ 
-      token: streamToken,
-      expiresIn: 20 // 20 saniye
-    });
-  } catch (error) {
-    console.error('Stream token oluşturma hatası:', error);
-    res.status(500).json({ error: 'Token oluşturulamadı', details: error.message });
-  }
-});
-
-// Güvenli video streaming (stream token ile - query parameter'dan)
-// Stream token çok kısa süreli (20 saniye) olduğu için güvenlik riski çok düşük
-app.get('/api/courses/:courseId/videos/:videoFile', async (req, res) => {
-  try {
-    // Stream token kontrolü
-    const streamToken = req.query.token;
-    if (!streamToken) {
-      return res.status(401).json({ error: 'Stream token bulunamadı' });
-    }
-
-    // Token'ı doğrula
-    let tokenData;
-    try {
-      tokenData = jwt.verify(streamToken, JWT_SECRET);
-      
-      // Stream token olduğunu kontrol et
-      if (tokenData.type !== 'stream') {
-        return res.status(403).json({ error: 'Geçersiz token tipi' });
-      }
-    } catch (err) {
-      return res.status(403).json({ error: 'Geçersiz veya süresi dolmuş token' });
-    }
-
-    const courseId = parseInt(req.params.courseId, 10);
-    const videoFile = req.params.videoFile;
-
-    // Token'daki bilgileri kontrol et
-    if (tokenData.courseId !== courseId || tokenData.videoFile !== videoFile) {
-      return res.status(403).json({ error: 'Token bu video için geçerli değil' });
-    }
-
-    // Kullanıcının kursa erişimi var mı kontrol et
-    const purchase = await prisma.purchase.findFirst({
-      where: {
-        userId: tokenData.userId,
-        courseId: courseId,
-        status: 'COMPLETED'
-      }
-    });
-
-    // Purchase yoksa access code kontrolü
-    if (!purchase) {
-      const accessCodeSession = tokenData.accessCodeSession || {};
-      if (!accessCodeSession[courseId]) {
-        return res.status(403).json({ error: 'Bu kursa erişim yetkiniz yok' });
-      }
-    }
-  try {
-    const courseId = parseInt(req.params.courseId, 10);
-    const videoFile = req.params.videoFile;
-
-    // Kurs + modüller
 
     // Kurs + modüller
     const course = await prisma.course.findUnique({
