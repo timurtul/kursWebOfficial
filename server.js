@@ -54,19 +54,15 @@ if (!fs.existsSync(VIDEO_DIR)) {
 // Prisma ile Postgres bağlantısı (ENV üzerinden)
 
 // JWT Token doğrulama middleware
-// Video tag'leri Authorization header gönderemediği için query parameter'dan da token okuyoruz
+// Video endpoint'leri için token header'dan alınır (güvenlik için)
+// Query parameter desteği kaldırıldı (güvenlik açığı)
 const authenticateToken = (req, res, next) => {
-  // Önce Authorization header'dan dene
+  // Authorization header'dan token al
   const authHeader = req.headers['authorization'];
-  let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-  // Eğer header'da yoksa query parameter'dan al (video tag'leri için)
-  if (!token && req.query.token) {
-    token = req.query.token;
-  }
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
-    return res.status(401).json({ error: 'Token bulunamadı' });
+    return res.status(401).json({ error: 'Token bulunamadı. Lütfen giriş yapın.' });
   }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {

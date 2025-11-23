@@ -116,13 +116,55 @@ class API {
     return this.request(`/courses/${courseId}`);
   }
 
-  // Video streaming URL (protected)
+  // Video streaming URL (protected) - Token URL'de değil, header'da gönderilir
   static getVideoUrl(courseId, videoFile) {
+    // Token URL'de değil, sadece endpoint döndür
+    // Video fetch edilirken token header'da gönderilecek
+    return `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}`;
+  }
+
+  // Video'yu fetch edip blob URL oluştur (güvenli - token URL'de görünmez)
+  // NOT: Büyük videolar için tüm video memory'ye yüklenir, bu performans sorunlarına yol açabilir
+  // Gelecekte MediaSource API ile geliştirilebilir
+  static async getVideoBlobUrl(courseId, videoFile) {
     const token = this.getToken();
     if (!token) {
       throw new Error('Giriş yapmanız gerekiyor');
     }
-    return `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}?token=${token}`;
+
+    const url = `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}`;
+    
+    try {
+      // Video'yu fetch et (token header'da, URL'de görünmez)
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Video yüklenemedi: ${response.status} ${response.statusText}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorMessage;
+        } catch (e) {
+          // JSON parse hatası, text kullan
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Blob oluştur
+      const blob = await response.blob();
+      
+      // Blob URL oluştur (bu URL sadece bu tarayıcı oturumunda geçerli)
+      const blobUrl = URL.createObjectURL(blob);
+      
+      return blobUrl;
+    } catch (error) {
+      console.error('Video fetch hatası:', error);
+      throw error;
+    }
   }
 
   // Purchase endpoints
