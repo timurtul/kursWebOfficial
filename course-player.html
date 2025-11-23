@@ -82,32 +82,6 @@
             object-fit: contain;
         }
 
-        .video-watermark {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            font-family: 'Courier New', monospace;
-            z-index: 10;
-            pointer-events: none;
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .video-watermark::before {
-            content: 'Kullanıcı: ';
-            opacity: 0.7;
-        }
-
         .video-info-section {
             padding: 1.5rem 2rem;
             border-bottom: 1px solid #e5e7eb;
@@ -491,7 +465,6 @@
                 <video id="videoPlayer" controls>
                     Video yükleniyor...
                 </video>
-                <div id="videoWatermark" class="video-watermark" style="display: none;"></div>
             </div>
             
             <div class="video-info-section">
@@ -756,9 +729,6 @@
             const videoPlayer = document.getElementById('videoPlayer');
             videoPlayer.src = videoUrl;
             
-            // Watermark'ı göster
-            updateWatermark();
-            
             // Video bilgilerini güncelle
             document.getElementById('currentVideoTitle').textContent = module.title;
             document.getElementById('currentVideoInfo').textContent = `Video ${index + 1} / ${currentCourse.modules.length} • ${formatDuration(module.duration || 0)}`;
@@ -810,7 +780,7 @@
                 alert(errorMessage + '\n\nLütfen sayfayı yenileyin veya daha sonra tekrar deneyin.');
             }, { once: true });
             
-            // Video bitince progress güncelle
+            // Video bitince progress güncelle (isteğe bağlı - localStorage ile takip edilebilir)
             videoPlayer.addEventListener('ended', function() {
                 const item = document.querySelectorAll('.module-item')[index];
                 if (item && !item.classList.contains('completed')) {
@@ -820,47 +790,6 @@
                     updateProgress(completed);
                 }
             }, { once: true });
-        }
-
-        // Watermark'ı güncelle (kullanıcı bilgisini göster)
-        function updateWatermark() {
-            const watermarkEl = document.getElementById('videoWatermark');
-            const user = API.getUser();
-            
-            if (user) {
-                // Kullanıcı ID'sini göster (veya email'in ilk kısmını)
-                let userCode = '';
-                if (user.id) {
-                    // User ID'yi kısa bir kod olarak göster
-                    userCode = `ID-${user.id.toString().slice(-6)}`;
-                } else if (user.email) {
-                    // Email'in ilk kısmını göster
-                    const emailParts = user.email.split('@');
-                    userCode = emailParts[0].substring(0, 8).toUpperCase();
-                } else {
-                    userCode = 'USER';
-                }
-                
-                watermarkEl.textContent = userCode;
-                watermarkEl.style.display = 'block';
-            } else {
-                // Token'dan user ID'yi çıkar (JWT decode)
-                const token = API.getToken();
-                if (token) {
-                    try {
-                        const payload = JSON.parse(atob(token.split('.')[1]));
-                        if (payload.userId) {
-                            const userId = payload.userId.toString().slice(-6);
-                            watermarkEl.textContent = `ID-${userId}`;
-                            watermarkEl.style.display = 'block';
-                        }
-                    } catch (e) {
-                        watermarkEl.style.display = 'none';
-                    }
-                } else {
-                    watermarkEl.style.display = 'none';
-                }
-            }
         }
 
         // Sayfa yüklendiğinde kursu yükle
