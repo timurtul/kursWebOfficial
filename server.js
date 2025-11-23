@@ -7,7 +7,6 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const { PrismaClient } = require('@prisma/client');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 require('dotenv').config();
 
 const app = express();
@@ -385,6 +384,7 @@ app.get('/api/courses/:courseId', async (req, res) => {
 // ========== VIDEO STREAMING ENDPOINT ==========
 
 // Güvenli video streaming (token ve erişim kontrolü ile)
+// ÖNEMLİ: Video'lar backend üzerinden stream edilir, URL paylaşılsa bile token kontrolü her istekte yapılır
 app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCourseAccess, async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId, 10);
@@ -407,22 +407,69 @@ app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCour
     }
 
     const matchingFile = module.videoFile;
+    const range = req.headers.range;
 
-    // Önce S3 signed URL dene
-    try {
-      const signedUrl = await getSignedUrl(
-        s3Client,
-        new GetObjectCommand({
+    // Önce S3'ten stream etmeyi dene
+    if (process.env.AWS_S3_BUCKET) {
+      try {
+        const s3Key = `videos/${matchingFile}`;
+        const command = new GetObjectCommand({
           Bucket: process.env.AWS_S3_BUCKET,
-          Key: `videos/${matchingFile}`
-        }),
-        { expiresIn: 3600 }
-      );
+          Key: s3Key
+        });
 
-      return res.redirect(signedUrl);
-    } catch (s3Error) {
-      console.error('S3 video erişim hatası:', s3Error);
-      // S3 başarısız olursa local fallback deneriz
+        // S3'ten video metadata'sını al
+        const s3Response = await s3Client.send(command);
+        const contentLength = s3Response.ContentLength;
+        const contentType = s3Response.ContentType || 'video/mp4';
+
+        // Range request desteği
+        if (range) {
+          const parts = range.replace(/bytes=/, '').split('-');
+          const start = parseInt(parts[0], 10);
+          const end = parts[1] ? parseInt(parts[1], 10) : contentLength - 1;
+          const chunksize = (end - start) + 1;
+
+          // S3'ten belirli byte range'ini al
+          const rangeCommand = new GetObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET,
+            Key: s3Key,
+            Range: `bytes=${start}-${end}`
+          });
+
+          const rangeResponse = await s3Client.send(rangeCommand);
+          
+          res.writeHead(206, {
+            'Content-Range': `bytes ${start}-${end}/${contentLength}`,
+            'Accept-Ranges': 'bytes',
+            'Content-Length': chunksize,
+            'Content-Type': contentType,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          });
+
+          // S3 stream'ini response'a pipe et
+          rangeResponse.Body.pipe(res);
+        } else {
+          // Tam video stream
+          res.writeHead(200, {
+            'Content-Length': contentLength,
+            'Content-Type': contentType,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          });
+
+          s3Response.Body.pipe(res);
+        }
+
+        return; // S3 başarılı, çık
+      } catch (s3Error) {
+        console.error('S3 video erişim hatası:', s3Error);
+        // S3 başarısız olursa local fallback deneriz
+      }
     }
 
     // Local fallback (videolar videos/ klasöründe)
@@ -433,7 +480,6 @@ app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCour
 
     const stat = fs.statSync(videoPath);
     const fileSize = stat.size;
-    const range = req.headers.range;
 
     if (range) {
       const parts = range.replace(/bytes=/, '').split('-');
@@ -446,7 +492,9 @@ app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCour
         'Accept-Ranges': 'bytes',
         'Content-Length': chunksize,
         'Content-Type': 'video/mp4',
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       };
       res.writeHead(206, head);
       file.pipe(res);
@@ -454,7 +502,10 @@ app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCour
       const head = {
         'Content-Length': fileSize,
         'Content-Type': 'video/mp4',
-        'Cache-Control': 'no-cache'
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       };
       res.writeHead(200, head);
       fs.createReadStream(videoPath).pipe(res);

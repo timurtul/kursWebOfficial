@@ -56,10 +56,15 @@
             </div>
 
             <nav class="mt-8 space-y-3 text-left" aria-label="Primary links">
+            <a href="https://timurtul.com" class="group flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3.5 text-base font-medium hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 motion-safe:transition motion-safe:duration-200 ease-out motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none">
+                    <span>A'dan Z'ye AI Agent Geliştiricisi Eğitimine Katıl</span>
+                    <span aria-hidden="true" class="text-gray-400 motion-safe:transition-transform motion-safe:duration-200 ease-out group-hover:translate-x-0.5">›</span>
+                </a>
                 <a href="https://t.me/timurtulai" class="group flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3.5 text-base font-medium hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 motion-safe:transition motion-safe:duration-200 ease-out motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none">
                     <span>AI Telegram Grubumuza Katıl</span>
                     <span aria-hidden="true" class="text-gray-400 motion-safe:transition-transform motion-safe:duration-200 ease-out group-hover:translate-x-0.5">›</span>
                 </a>
+                
                 <a href="https://calendly.com/timurtul/15mins" class="group flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3.5 text-base font-medium hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 motion-safe:transition motion-safe:duration-200 ease-out motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none">
                     <span>15 Dakikalık Ücretsiz Tanışma Görüşmesi</span>
                     <span aria-hidden="true" class="text-gray-400 motion-safe:transition-transform motion-safe:duration-200 ease-out group-hover:translate-x-0.5">›</span>
@@ -68,10 +73,7 @@
                     <span>Mesleğinin Yerini AI Alacak Mı?</span>
                     <span aria-hidden="true" class="text-gray-400 motion-safe:transition-transform motion-safe:duration-200 ease-out group-hover:translate-x-0.5">›</span>
                 </a>
-                <a href="https://timurtul.com/links" class="group flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3.5 text-base font-medium hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 motion-safe:transition motion-safe:duration-200 ease-out motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none">
-                    <span>E-Tacirler için AI Masterclass'a Katıl (YAKINDA)</span>
-                    <span aria-hidden="true" class="text-gray-400 motion-safe:transition-transform motion-safe:duration-200 ease-out group-hover:translate-x-0.5">›</span>
-                </a>
+               
            <!--  <a href="#" class="group flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3.5 text-base font-medium hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 motion-safe:transition motion-safe:duration-200 ease-out motion-safe:hover:-translate-y-0.5 motion-safe:hover:shadow-sm motion-reduce:transform-none motion-reduce:transition-none">
                     <span>Portfolio</span>
                     <span aria-hidden="true" class="text-gray-400 motion-safe:transition-transform motion-safe:duration-200 ease-out group-hover:translate-x-0.5">›</span>
