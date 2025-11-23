@@ -116,86 +116,13 @@ class API {
     return this.request(`/courses/${courseId}`);
   }
 
-  // Video streaming için çok kısa süreli token al (20 saniye geçerli)
-  // Bu token URL'de görünür ama çok kısa süreli olduğu için güvenlik riski çok düşük
-  // Video hemen yüklenmeye başlar (progressive loading)
-  static async getVideoStreamUrl(courseId, videoFile) {
+  // Video streaming URL (protected)
+  static getVideoUrl(courseId, videoFile) {
     const token = this.getToken();
     if (!token) {
       throw new Error('Giriş yapmanız gerekiyor');
     }
-
-    try {
-      // Çok kısa süreli stream token al (2 dakika)
-      const tokenUrl = `${API_BASE_URL}/courses/${courseId}/videos/${encodeURIComponent(videoFile)}/stream-token`;
-      const response = await fetch(tokenUrl, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Token alınamadı: ${response.status}`;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error || errorMessage;
-        } catch (e) {
-          if (errorText) {
-            errorMessage = errorText;
-          }
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      const streamToken = data.token;
-
-      // Video URL'ini stream token ile oluştur
-      // Token URL'de görünür ama sadece 2 dakika geçerli
-      return `${API_BASE_URL}/courses/${courseId}/videos/${encodeURIComponent(videoFile)}?token=${streamToken}`;
-    } catch (error) {
-      console.error('Stream token alma hatası:', error);
-      throw error;
-    }
-  }
-
-  // Fallback: Blob URL (küçük videolar için - MediaSource desteklenmiyorsa)
-  static async getVideoBlobUrlFallback(courseId, videoFile) {
-    const token = this.getToken();
-    if (!token) {
-      throw new Error('Giriş yapmanız gerekiyor');
-    }
-
-    const url = `${API_BASE_URL}/courses/${courseId}/videos/${encodeURIComponent(videoFile)}`;
-    
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Video yüklenemedi: ${response.status}`;
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error || errorMessage;
-        } catch (e) {
-          if (errorText) {
-            errorMessage = errorText;
-          }
-        }
-        throw new Error(errorMessage);
-      }
-
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
-    } catch (error) {
-      console.error('Video fetch hatası:', error);
-      throw error;
-    }
+    return `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}?token=${token}`;
   }
 
   // Purchase endpoints

@@ -717,80 +717,42 @@
         }
 
         // Video yükle
-        async function loadVideo(index) {
+        function loadVideo(index) {
             if (!currentCourse || !currentCourse.modules[index]) {
                 return;
             }
             
             currentVideoIndex = index;
             const module = currentCourse.modules[index];
+            const videoUrl = API.getVideoUrl(courseId, module.fileName);
             
             const videoPlayer = document.getElementById('videoPlayer');
+            videoPlayer.src = videoUrl;
             
-            // Önceki blob URL'i temizle (memory leak önleme)
-            if (videoPlayer.src && videoPlayer.src.startsWith('blob:')) {
-                URL.revokeObjectURL(videoPlayer.src);
+            // Video bilgilerini güncelle
+            document.getElementById('currentVideoTitle').textContent = module.title;
+            document.getElementById('currentVideoInfo').textContent = `Video ${index + 1} / ${currentCourse.modules.length} • ${formatDuration(module.duration || 0)}`;
+            
+            // Modül listesindeki aktif durumu güncelle
+            document.querySelectorAll('.module-item').forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('active');
+                    // Aktif modülü görünür yap (scroll into view)
+                    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+            
+            // Mobilde sidebar'ı kapat
+            if (window.innerWidth <= 1024) {
+                document.getElementById('courseSidebar').classList.remove('open');
             }
             
-            // Loading göster
-            videoPlayer.style.display = 'none';
-            const loadingIndicator = document.createElement('div');
-            loadingIndicator.id = 'videoLoading';
-            loadingIndicator.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 1.2rem;';
-            loadingIndicator.textContent = 'Video yükleniyor...';
-            videoPlayer.parentElement.appendChild(loadingIndicator);
-            
-            try {
-                // Çok kısa süreli stream token al ve video URL'ini oluştur
-                // Token URL'de görünür ama sadece 20 saniye geçerli, video hemen yüklenmeye başlar
-                const videoUrl = await API.getVideoStreamUrl(courseId, module.fileName);
-                
-                // Önceki blob URL'i temizle (memory leak önleme)
-                if (videoPlayer.src && videoPlayer.src.startsWith('blob:')) {
-                    URL.revokeObjectURL(videoPlayer.src);
-                }
-                
-                // Loading'i kaldır
-                const loadingEl = document.getElementById('videoLoading');
-                if (loadingEl) loadingEl.remove();
-                videoPlayer.style.display = 'block';
-                
-                // Video'yu oynat (progressive loading - hemen başlar)
-                videoPlayer.src = videoUrl;
-                
-                // Video bilgilerini güncelle
-                document.getElementById('currentVideoTitle').textContent = module.title;
-                document.getElementById('currentVideoInfo').textContent = `Video ${index + 1} / ${currentCourse.modules.length} • ${formatDuration(module.duration || 0)}`;
-                
-                // Modül listesindeki aktif durumu güncelle
-                document.querySelectorAll('.module-item').forEach((item, i) => {
-                    if (i === index) {
-                        item.classList.add('active');
-                        // Aktif modülü görünür yap (scroll into view)
-                        item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    } else {
-                        item.classList.remove('active');
-                    }
-                });
-                
-                // Mobilde sidebar'ı kapat
-                if (window.innerWidth <= 1024) {
-                    document.getElementById('courseSidebar').classList.remove('open');
-                }
-                
-            } catch (error) {
-                // Loading'i kaldır
-                const loadingEl = document.getElementById('videoLoading');
-                if (loadingEl) loadingEl.remove();
-                videoPlayer.style.display = 'block';
-                
-                console.error('Video yükleme hatası:', error);
-                alert('Video yüklenirken bir hata oluştu: ' + error.message);
-            }
-            
-            // Video yükleme hatası (video player seviyesinde)
+            // Video yükleme hatası
             videoPlayer.addEventListener('error', function(e) {
-                console.error('Video oynatma hatası:', {
+                console.error('Video yükleme hatası:', {
+                    url: videoUrl,
                     error: videoPlayer.error,
                     code: videoPlayer.error?.code,
                     message: videoPlayer.error?.message
