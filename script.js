@@ -117,70 +117,7 @@ function insertVideo(container, src) {
 // Form submission handler - Backend entegrasyonu
 async function handleSubmit(event) {
     event.preventDefault();
-    
-    const form = event.target;
-    const formData = new FormData(form);
-    const name = formData.get('name') || form.querySelector('input[type="text"]')?.value;
-    const email = formData.get('email') || form.querySelector('input[type="email"]')?.value;
-    const phone = formData.get('phone') || form.querySelector('input[type="tel"]')?.value;
-    
-    try {
-        // Önce kullanıcı kaydı/girişi yap (email kontrolü ile)
-        let token = API.getToken();
-        let user = API.getUser();
-        
-        if (!token || !user) {
-            // Kullanıcı kaydı yap (şifre otomatik oluşturulabilir veya kullanıcıdan istenebilir)
-            const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
-            
-            try {
-                // Önce kayıt dene
-                const registerData = await API.register(email, tempPassword, name);
-                token = registerData.token;
-                user = registerData.user;
-                
-                // Kullanıcıya şifresini email ile gönder (backend'de email servisi eklenebilir)
-                console.log('Kayıt başarılı. Geçici şifre:', tempPassword);
-            } catch (error) {
-                // Eğer kullanıcı zaten varsa giriş yap
-                if (error.message.includes('zaten kayıtlı')) {
-                    // Kullanıcıdan şifre iste veya password reset flow başlat
-                    alert('Bu email ile kayıtlı bir hesap var. Lütfen giriş yapın veya şifre sıfırlama yapın.');
-                    return;
-                }
-                throw error;
-            }
-        }
-        
-        // Kurs satın alma işlemi
-        const courseId = 1; // Varsayılan kurs ID (dinamik yapılabilir)
-        
-        try {
-            const purchaseResult = await API.purchaseCourse(courseId);
-            
-            // Başarılı mesajı göster
-            alert('Satın alma başarılı! Kurs paneline yönlendiriliyorsunuz...');
-            
-            // Kurs paneline yönlendir (veya modal aç)
-            setTimeout(() => {
-                window.location.href = 'course-player.html?courseId=' + courseId;
-            }, 1000);
-            
-        } catch (error) {
-            if (error.message.includes('zaten satın alınmış')) {
-                alert('Bu kursu zaten satın aldınız. Kurs paneline yönlendiriliyorsunuz...');
-                setTimeout(() => {
-                    window.location.href = 'course-player.html?courseId=' + courseId;
-                }, 1000);
-            } else {
-                throw error;
-            }
-        }
-        
-    } catch (error) {
-        console.error('Hata:', error);
-        alert('Bir hata oluştu: ' + error.message);
-    }
+    window.location.href = 'https://www.shopier.com/timurtul/41476030';
 }
 
 // Scroll animations
