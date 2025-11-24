@@ -122,7 +122,8 @@ class API {
     if (!token) {
       throw new Error('Giriş yapmanız gerekiyor');
     }
-    return `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}?token=${token}`;
+    const safeToken = encodeURIComponent(token);
+    return `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}?token=${safeToken}`;
   }
 
   // Purchase endpoints

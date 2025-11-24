@@ -33,11 +33,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
 // Rate limiting
-const limiter = rateLimit({
+const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 dakika
   max: 100 // Her IP için maksimum 100 istek
 });
-app.use('/api/', limiter);
+
+// Video stream'leri yüksek istek ürettiği için limiter'dan muaf tut
+app.use('/api', (req, res, next) => {
+  if (/^\/courses\/\d+\/videos\//.test(req.path)) {
+    return next();
+  }
+  return generalLimiter(req, res, next);
+});
 
 // Kod doğrulama için özel rate limiting (brute force koruması)
 const codeLimiter = rateLimit({
