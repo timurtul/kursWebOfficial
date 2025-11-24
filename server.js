@@ -390,9 +390,8 @@ app.get('/api/courses/:courseId', async (req, res) => {
 
 // ========== VIDEO STREAMING ENDPOINT ==========
 
-// Güvenli video streaming (token ve erişim kontrolü ile)
-// ÖNEMLİ: Video'lar backend üzerinden stream edilir, URL paylaşılsa bile token kontrolü her istekte yapılır
-app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCourseAccess, async (req, res) => {
+// Video streaming (korumasız istek, kullanıcı talebi ile)
+app.get('/api/courses/:courseId/videos/:videoFile', async (req, res) => {
   try {
     const courseId = parseInt(req.params.courseId, 10);
     const videoFile = req.params.videoFile;
