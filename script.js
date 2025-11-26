@@ -94,15 +94,20 @@ function setPlaceholderImage(element) {
 function insertVideo(container, src) {
     container.innerHTML = '';
     
-    // Loading indicator ekle
+    // Loading indicator with progress
     const loader = document.createElement('div');
     loader.className = 'video-loader';
-    loader.innerHTML = `
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;">
-            <div style="width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    const loaderInner = document.createElement('div');
+    loaderInner.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; text-align: center; color: white;';
+    loaderInner.innerHTML = `
+        <div style="width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>
+        <div style="font-size: 14px; opacity: 0.9;" id="loadingText">Video yükleniyor...</div>
+        <div style="width: 200px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 10px auto 0; overflow: hidden;">
+            <div id="loadingProgress" style="width: 0%; height: 100%; background: white; transition: width 0.3s ease;"></div>
         </div>
     `;
-    loader.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9;';
+    loader.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9;';
+    loader.appendChild(loaderInner);
     container.appendChild(loader);
     
     const video = document.createElement('video');
@@ -111,7 +116,8 @@ function insertVideo(container, src) {
     video.autoplay = false;
     video.muted = false;
     video.setAttribute('playsinline', '');
-    video.preload = 'metadata';
+    // Preload stratejisini iyileştir - video içeriğini de yükle
+    video.preload = 'auto';
     video.volume = 1;
     video.style.width = '100%';
     video.style.height = '100%';
@@ -120,44 +126,140 @@ function insertVideo(container, src) {
     video.style.top = '0';
     video.style.left = '0';
     
-    // Video yüklendiğinde loader'ı kaldır
-    const removeLoader = () => {
-        if (loader && loader.parentNode) {
-            loader.style.opacity = '0';
-            loader.style.transition = 'opacity 0.3s ease';
-            setTimeout(() => {
-                if (loader.parentNode) {
-                    loader.parentNode.removeChild(loader);
+    // Buffering stratejisi ekle
+    video.setAttribute('webkit-playsinline', '');
+    video.setAttribute('x5-playsinline', '');
+    
+    // Progress tracking
+    const progressBar = loader.querySelector('#loadingProgress');
+    const loadingText = loader.querySelector('#loadingText');
+    
+    let loadingStarted = false;
+    let removeLoaderTimeout = null;
+    
+    const updateProgress = () => {
+        if (!video.buffered.length) return;
+        
+        const loaded = video.buffered.end(video.buffered.length - 1);
+        const total = video.duration;
+        
+        if (total && !isNaN(total) && total > 0) {
+            const percent = Math.min((loaded / total) * 100, 100);
+            if (progressBar) {
+                progressBar.style.width = percent + '%';
+            }
+            
+            if (!loadingStarted && loaded > 0) {
+                loadingStarted = true;
+                if (loadingText) {
+                    loadingText.textContent = 'Video yükleniyor... (' + Math.round(percent) + '%)';
                 }
-            }, 300);
+            }
         }
     };
     
-    // Birden fazla event dinle (S3 linkleri için)
-    video.addEventListener('canplay', removeLoader, { once: true });
-    video.addEventListener('loadeddata', removeLoader, { once: true });
-    video.addEventListener('canplaythrough', removeLoader, { once: true });
+    // Video yüklendiğinde loader'ı kaldır
+    const removeLoader = () => {
+        if (removeLoaderTimeout) return; // Zaten kaldırılacak
+        
+        removeLoaderTimeout = setTimeout(() => {
+            if (loader && loader.parentNode) {
+                loader.style.opacity = '0';
+                loader.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => {
+                    if (loader.parentNode) {
+                        loader.parentNode.removeChild(loader);
+                    }
+                }, 500);
+            }
+        }, 500); // Kısa bir gecikme ile kaldır (buffer tamamlanmış olsun)
+    };
+    
+    // Progress event'leri
+    video.addEventListener('progress', updateProgress);
+    video.addEventListener('timeupdate', updateProgress);
+    
+    // Birden fazla event dinle (S3 linkleri için) - daha agresif
+    video.addEventListener('canplay', function() {
+        if (loadingText) loadingText.textContent = 'Video hazırlanıyor...';
+        // Biraz buffer'ın yüklenmesini bekle
+        setTimeout(removeLoader, 800);
+    }, { once: true });
+    
+    video.addEventListener('loadeddata', function() {
+        if (loadingText) loadingText.textContent = 'Video verisi yüklendi...';
+        updateProgress();
+    }, { once: true });
+    
+    video.addEventListener('canplaythrough', function() {
+        if (loadingText) loadingText.textContent = 'Video hazır!';
+        removeLoader();
+    }, { once: true });
+    
+    video.addEventListener('loadedmetadata', function() {
+        updateProgress();
+        // S3 linkleri için ekstra kontrol
+        if (video.readyState >= 3) {
+            if (loadingText) loadingText.textContent = 'Video neredeyse hazır...';
+        }
+    });
     
     // Video hazır olduğunda da kontrol et
-    if (video.readyState >= 2) {
-        removeLoader();
-    }
+    const checkReady = () => {
+        if (video.readyState >= 3) {
+            updateProgress();
+            if (video.buffered.length > 0 && video.buffered.end(0) > 2) {
+                removeLoader();
+            }
+        }
+    };
     
+    // Error handling
     video.addEventListener('error', function(e) {
-        console.error('Video yüklenemedi:', e);
-        removeLoader();
-        alert('Video yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
+        console.error('Video yüklenemedi:', e, video.error);
+        if (loadingText) {
+            loadingText.textContent = 'Video yüklenirken hata oluştu...';
+        }
+        
+        // Hata durumunda retry mekanizması
+        setTimeout(() => {
+            removeLoader();
+            const errorMsg = video.error ? 
+                `Video yüklenemedi (${video.error.code === 4 ? 'Kaynak bulunamadı' : 'Bilinmeyen hata'}). Lütfen sayfayı yenileyin.` :
+                'Video yüklenirken bir hata oluştu. Lütfen sayfayı yenileyin.';
+            alert(errorMsg);
+        }, 2000);
+    });
+    
+    // Stalled event - video yükleme durduğunda
+    video.addEventListener('stalled', function() {
+        if (loadingText) {
+            loadingText.textContent = 'Bağlantı kontrol ediliyor...';
+        }
+    });
+    
+    // Waiting event - video buffer beklerken
+    video.addEventListener('waiting', function() {
+        if (loader && loader.parentNode && loader.style.opacity !== '0') {
+            if (loadingText) {
+                loadingText.textContent = 'Video yükleniyor, lütfen bekleyin...';
+            }
+        }
     });
     
     container.appendChild(video);
     
-    // Video metadata yüklendiğinde loader'ı kaldır
-    video.addEventListener('loadedmetadata', function() {
-        // S3 linkleri için ekstra kontrol
-        if (video.readyState >= 2) {
-            removeLoader();
+    // Video yükleme başladığında progress'i başlat
+    video.addEventListener('loadstart', function() {
+        if (loadingText) {
+            loadingText.textContent = 'Video bağlantısı kuruluyor...';
         }
     });
+    
+    // Hemen kontrol et
+    setTimeout(checkReady, 100);
+    setTimeout(checkReady, 500);
+    setTimeout(checkReady, 1000);
     
     video.play().catch(() => {});
 }

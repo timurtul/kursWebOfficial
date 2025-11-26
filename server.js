@@ -410,13 +410,15 @@ app.get('/api/courses/:courseId/videos/:videoFile', authenticateToken, checkCour
 
     // Önce S3 signed URL dene
     try {
+      // S3 signed URL - expire süresini uzat (6 saat = 21600 saniye)
+      // Bu sayede kullanıcılar video izlerken URL'in expire olması önlenir
       const signedUrl = await getSignedUrl(
         s3Client,
         new GetObjectCommand({
           Bucket: process.env.AWS_S3_BUCKET,
           Key: `videos/${matchingFile}`
         }),
-        { expiresIn: 3600 }
+        { expiresIn: 21600 } // 6 saat - video izleme süresi için yeterli
       );
 
       return res.redirect(signedUrl);
