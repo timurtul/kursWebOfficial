@@ -116,9 +116,13 @@ class API {
     return this.request(`/courses/${courseId}`);
   }
 
-  // Video streaming URL (artık korumasız istekte çalışıyor)
+  // Video streaming URL (protected)
   static getVideoUrl(courseId, videoFile) {
-    return `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}`;
+    const token = this.getToken();
+    if (!token) {
+      throw new Error('Giriş yapmanız gerekiyor');
+    }
+    return `${API_BASE_URL}/courses/${courseId}/videos/${videoFile}?token=${token}`;
   }
 
   // Purchase endpoints

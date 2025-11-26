@@ -93,12 +93,25 @@ function setPlaceholderImage(element) {
 
 function insertVideo(container, src) {
     container.innerHTML = '';
+    
+    // Loading indicator ekle
+    const loader = document.createElement('div');
+    loader.className = 'video-loader';
+    loader.innerHTML = `
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;">
+            <div style="width: 50px; height: 50px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        </div>
+    `;
+    loader.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9;';
+    container.appendChild(loader);
+    
     const video = document.createElement('video');
     video.src = src;
     video.controls = true;
     video.autoplay = false;
     video.muted = false;
     video.setAttribute('playsinline', '');
+    video.preload = 'metadata';
     video.volume = 1;
     video.style.width = '100%';
     video.style.height = '100%';
@@ -106,18 +119,116 @@ function insertVideo(container, src) {
     video.style.position = 'absolute';
     video.style.top = '0';
     video.style.left = '0';
-    container.appendChild(video);
-    video.addEventListener('error', function() {
-        console.error('Video yüklenemedi');
+    
+    // Video yüklendiğinde loader'ı kaldır
+    const removeLoader = () => {
+        if (loader && loader.parentNode) {
+            loader.style.opacity = '0';
+            loader.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => {
+                if (loader.parentNode) {
+                    loader.parentNode.removeChild(loader);
+                }
+            }, 300);
+        }
+    };
+    
+    // Birden fazla event dinle (S3 linkleri için)
+    video.addEventListener('canplay', removeLoader, { once: true });
+    video.addEventListener('loadeddata', removeLoader, { once: true });
+    video.addEventListener('canplaythrough', removeLoader, { once: true });
+    
+    // Video hazır olduğunda da kontrol et
+    if (video.readyState >= 2) {
+        removeLoader();
+    }
+    
+    video.addEventListener('error', function(e) {
+        console.error('Video yüklenemedi:', e);
+        removeLoader();
         alert('Video yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
     });
+    
+    container.appendChild(video);
+    
+    // Video metadata yüklendiğinde loader'ı kaldır
+    video.addEventListener('loadedmetadata', function() {
+        // S3 linkleri için ekstra kontrol
+        if (video.readyState >= 2) {
+            removeLoader();
+        }
+    });
+    
     video.play().catch(() => {});
 }
 
 // Form submission handler - Backend entegrasyonu
 async function handleSubmit(event) {
     event.preventDefault();
-    window.location.href = 'https://www.shopier.com/timurtul/41476030';
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const name = formData.get('name') || form.querySelector('input[type="text"]')?.value;
+    const email = formData.get('email') || form.querySelector('input[type="email"]')?.value;
+    const phone = formData.get('phone') || form.querySelector('input[type="tel"]')?.value;
+    
+    try {
+        // Önce kullanıcı kaydı/girişi yap (email kontrolü ile)
+        let token = API.getToken();
+        let user = API.getUser();
+        
+        if (!token || !user) {
+            // Kullanıcı kaydı yap (şifre otomatik oluşturulabilir veya kullanıcıdan istenebilir)
+            const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
+            
+            try {
+                // Önce kayıt dene
+                const registerData = await API.register(email, tempPassword, name);
+                token = registerData.token;
+                user = registerData.user;
+                
+                // Kullanıcıya şifresini email ile gönder (backend'de email servisi eklenebilir)
+                console.log('Kayıt başarılı. Geçici şifre:', tempPassword);
+            } catch (error) {
+                // Eğer kullanıcı zaten varsa giriş yap
+                if (error.message.includes('zaten kayıtlı')) {
+                    // Kullanıcıdan şifre iste veya password reset flow başlat
+                    alert('Bu email ile kayıtlı bir hesap var. Lütfen giriş yapın veya şifre sıfırlama yapın.');
+                    return;
+                }
+                throw error;
+            }
+        }
+        
+        // Kurs satın alma işlemi
+        const courseId = 1; // Varsayılan kurs ID (dinamik yapılabilir)
+        
+        try {
+            const purchaseResult = await API.purchaseCourse(courseId);
+            
+            // Başarılı mesajı göster
+            alert('Satın alma başarılı! Kurs paneline yönlendiriliyorsunuz...');
+            
+            // Kurs paneline yönlendir (veya modal aç)
+            setTimeout(() => {
+                window.location.href = 'course-player.html?courseId=' + courseId;
+            }, 1000);
+            
+        } catch (error) {
+            if (error.message.includes('zaten satın alınmış')) {
+                alert('Bu kursu zaten satın aldınız. Kurs paneline yönlendiriliyorsunuz...');
+                setTimeout(() => {
+                    window.location.href = 'course-player.html?courseId=' + courseId;
+                }, 1000);
+            } else {
+                throw error;
+            }
+        }
+        
+    } catch (error) {
+        console.error('Hata:', error);
+        alert('Bir hata oluştu: ' + error.message);
+    }
 }
 
 // Scroll animations
