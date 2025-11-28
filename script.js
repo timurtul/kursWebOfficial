@@ -6,12 +6,14 @@ function toggleMobileMenu() {
     }
 }
 
-// Smooth scroll to form
+// Shopier satın alma sayfasına yönlendir
+function redirectToShopier() {
+    window.location.href = 'https://www.shopier.com/timurtul/41476030';
+}
+
+// Smooth scroll to form (eski fonksiyon, artık Shopier'e yönlendiriyor)
 function scrollToForm() {
-    document.getElementById('orderForm').scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'center'
-    });
+    redirectToShopier();
 }
 
 // FAQ Toggle

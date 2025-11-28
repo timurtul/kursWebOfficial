@@ -33,6 +33,11 @@ app.use(express.urlencoded({ extended: true }));
 // Static files serving (HTML, CSS, JS dosyaları için)
 app.use(express.static(__dirname));
 
+// Satın alma sayfası yönlendirmesi
+app.get('/satinal', (req, res) => {
+  res.redirect('https://www.shopier.com/timurtul/41476030');
+});
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 dakika
