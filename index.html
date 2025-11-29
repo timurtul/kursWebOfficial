@@ -8,6 +8,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Wistia Video Player -->
+    <script src="https://fast.wistia.com/player.js" async></script>
+    <script src="https://fast.wistia.com/embed/pcmfj6xqgr.js" async type="module"></script>
+    <style>wistia-player[media-id='pcmfj6xqgr']:not(:defined) { background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/pcmfj6xqgr/swatch'); display: block; filter: blur(5px); padding-top:56.25%; }</style>
 </head>
 <body>
     <!-- Announcement Bar -->
@@ -66,13 +70,8 @@
                 <p class="hero-subtitle">Başarıya giden yolda ilk adımınızı atın</p>
                 <div class="video-container">
                 <div class="video-wrapper">
-                    <div class="video-placeholder" data-preview-video="https://vekilify.com/Merhaba.mp4" data-preview-image="https://vekilify.com/thumb.png">
-                            <svg class="play-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
-                            </svg>
-                            <p>Video Oynatmak İçin Tıklayın</p>
-                        </div>
-                    </div>
+                    <wistia-player media-id="pcmfj6xqgr" aspect="1.7777777777777777"></wistia-player>
+                </div>
                 </div>
                 <p class="video-warning">TÜM DETAYLARI ÖĞRENMEK İÇİN VİDEOYU SONUNA KADAR İZLEYİNİZ</p>
                 <button class="hero-cta-button" onclick="scrollToForm()">

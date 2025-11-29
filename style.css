@@ -227,6 +227,22 @@ body {
     background: rgba(0, 0, 0, 0.3);
 }
 
+.video-wrapper wistia-player {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.video-wrapper wistia-player:not(:defined) {
+    background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/pcmfj6xqgr/swatch');
+    display: block;
+    filter: blur(5px);
+}
+
 .video-placeholder {
     position: absolute;
     top: 0;
